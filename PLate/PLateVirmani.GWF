@@ -1,0 +1,388 @@
+"REM WORKSPACETAB0",Query1,,1
+Select * from Virmanski_Nalog;
+"REM WORKSPACETAB1",Query2,,1
+Exec PVirmanskiNalog.DodajSlog( to_date('22.09.2010','dd.mm.yyyy'), 212,'1');
+"REM WORKSPACETAB2","ovaj za zamenu racuna",,8
+--update virmanski_nalog
+--set NALOGODAVAC_BROJ='290-10015-71'
+/
+
+select * from virmanski_nalog
+where TIP_OBRACUNA= 1
+--'290-10015-71'
+--and NALOGODAVAC_BROJ='160-7069-15'
+"REM WORKSPACETAB3",Query4,,7
+       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%' ;
+"REM WORKSPACETAB4",PorezNaDoh,,16
+
+       Select LISTA_RADNIK_RADNIK --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = '1'
+         And Lista_Obr_Obracun = 212
+         And Lista_Radnik_Radnik= Radnik
+         And OPS_OPSTINA_ZIVI_U in (       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%')
+                And Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12'
+--group by OPS_OPSTINA_ZIVI_U
+order by to_number(LISTA_RADNIK_RADNIK)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB5",Query9,,41
+select * from
+(
+       Select d2.LISTA_RADNIK_RADNIK rad_por
+       ,
+       (
+
+	       Select d1.LISTA_RADNIK_RADNIK --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+	       From Detalji_Liste d1, Radnici r1
+	       Where d1.Lista_Obr_Tio_Tip_Obracuna = '1'
+	         And d1.Lista_Obr_Obracun = 212
+	         And d1.Lista_Radnik_Radnik= Radnik
+	         And r1.OPS_OPSTINA_ZIVI_U
+	             in (Select Distinct OPS_OPSTINA_ZIVI_U
+	                 From Radnici
+	                 Where Radnik Not Like '_999%'
+	                 Union
+	                 Select Distinct OPS_PRIJAVE
+	                 From Radnici
+	                 Where Radnik Not Like '_999%')
+	                   And Dlis_Type ='D_ZBIR'
+	                   AND Zbir_Zbir='86'
+	                   and  d1.Lista_Radnik_Radnik =  d2.Lista_Radnik_Radnik
+
+
+       ) rad_por_pre
+
+       From Detalji_Liste d2, Radnici r2
+       Where d2.Lista_Obr_Tio_Tip_Obracuna = '1'
+         And d2.Lista_Obr_Obracun = 212
+         And d2.Lista_Radnik_Radnik= r2.Radnik
+         And r2.OPS_OPSTINA_ZIVI_U in (       Select Distinct OPS_OPSTINA_ZIVI_U
+                                              From Radnici
+                                              Where Radnik Not Like '_999%'
+                                              Union
+                                              Select Distinct OPS_PRIJAVE
+                                              From Radnici
+                                              Where Radnik Not Like '_999%')
+       And Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12'
+)
+where rad_por = rad_por_pre
+order by to_number(rad_por)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB6",PVirmani,,85
+declare
+cMesec Obracuni.Obracun_za%Type;
+nBrojObracuna Number := 212;
+cTipObracuna Varchar2(2) := '1';
+
+       nStanuje Number;
+
+       Cursor Stanuje_Cur Is
+       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%' ;
+nRbr Number := 0;
+
+       Cursor PorezNaDohodak ( nStanuje In Number ) Is
+       Select nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = cTipObracuna And
+             Lista_Obr_Obracun = nBrojObracuna And
+             Lista_Radnik_Radnik= Radnik And OPS_OPSTINA_ZIVI_U = nStanuje And
+             Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12';
+       nPorezNaDohodak Number;
+
+       Cursor PorezNaDohodakPre ( nStanuje In Number ) Is
+       Select nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = cTipObracuna And
+             Lista_Obr_Obracun = nBrojObracuna And
+             Lista_Radnik_Radnik= Radnik And OPS_OPSTINA_ZIVI_U = nStanuje And
+             Dlis_Type ='D_ZBIR' AND Zbir_Zbir='86';
+       nPorezNaDohodakPre Number;
+
+       cKreditor VarChar2( 6 );
+
+Begin
+			Select Obracun_Za Into cMesec
+            From Obracuni
+            Where Obracun = nBrojObracuna and Tio_Tip_Obracuna = cTipObracuna;
+
+            dbms_output.put_line('mesec '|| cMesec);
+
+       Open Stanuje_Cur;
+       Loop
+
+          Fetch Stanuje_Cur Into nStanuje;
+          Exit When Stanuje_Cur %NOTFOUND;
+               nRbr := nRbr + 1;
+               dbms_output.put_line('rbr ' || rpad(to_char(nRbr),5,' ') || ' opst '|| rpad(to_char(nStanuje),7,' '));
+
+		          Open PorezNaDohodak( nStanuje );
+		          Fetch PorezNaDohodak Into nPorezNaDohodak;
+		          If PorezNaDohodak % NOTFOUND Then
+		             nPorezNaDohodak := Null;
+		          End If;
+		          Close PorezNaDohodak;
+		          Open PorezNaDohodakPre( nStanuje );
+		          Fetch PorezNaDohodakPre Into nPorezNaDohodakPre;
+		          If PorezNaDohodakPre % NOTFOUND Then
+		             nPorezNaDohodakPre := Null;
+		          End If;
+		          Close PorezNaDohodakPre;
+               dbms_output.put_line(' porez plate     ' || rpad(to_char(nvl(nPorezNaDohodak,0)),10,' ') ||
+                                    ' porez plate pre '|| rpad(to_char(nvl(nPorezNaDohodakPre,0)),10,' ')
+                                   );
+          If nPorezNaDohodak Is Not Null And nPorezNaDohodak != 0 Then
+             Begin
+                Select Kreditor
+                Into cKreditor
+                From Kreditori
+                Where Kreditor Like '0001%' And Postanski_Broj = nStanuje;
+                dbms_output.put_line ( 'kreditor '||cKreditor);
+             Exception
+               When NO_DATA_FOUND Then
+             dbms_output.put_line ( 'Nije definisan kreditor za uplatu poreza na dohodak gradjana za opstinu sa post. brojem '||To_Char(nStanuje));
+             End;
+          End If;
+
+
+      end loop;
+      Close Stanuje_Cur;
+
+End;
+"REM WORKSPACETAB7",Query14,,16
+Select k.Kreditor, opst.OPS_OPSTINA_ZIVI_U
+From Kreditori k
+,(
+            Select Distinct OPS_OPSTINA_ZIVI_U
+            From Radnici
+            Where Radnik Not Like '_999%'
+            Union
+            Select Distinct OPS_PRIJAVE
+            From Radnici
+            Where Radnik Not Like '_999%'
+ ) opst
+Where k.Kreditor Like '0001%'
+ And k.Postanski_Broj = opst.OPS_OPSTINA_ZIVI_U
+--order by to_number(kreditor)
+
+order by opst.OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB8",Query15,,34
+Select k.Kreditor, opst.OPS_OPSTINA_ZIVI_U
+From Kreditori k
+,(
+            Select Distinct OPS_OPSTINA_ZIVI_U
+            From Radnici
+            Where Radnik Not Like '_999%'
+            Union
+            Select Distinct OPS_PRIJAVE
+            From Radnici
+            Where Radnik Not Like '_999%'
+ ) opst
+Where k.Kreditor Like '0001%'
+ And k.Postanski_Broj = opst.OPS_OPSTINA_ZIVI_U
+--order by to_number(kreditor)
+and OPS_OPSTINA_ZIVI_U in
+(
+	Select opst.OPS_OPSTINA_ZIVI_U
+	From Kreditori k
+	,(
+	            Select Distinct OPS_OPSTINA_ZIVI_U
+	            From Radnici
+	            Where Radnik Not Like '_999%'
+	            Union
+	            Select Distinct OPS_PRIJAVE
+	            From Radnici
+	            Where Radnik Not Like '_999%'
+	 ) opst
+	Where k.Kreditor Like '0001%'
+	 And k.Postanski_Broj = opst.OPS_OPSTINA_ZIVI_U
+	--order by to_number(kreditor)
+	Group by opst.OPS_OPSTINA_ZIVI_U
+	Having count(*) > 1
+)
+order by opst.OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB9",Query12,,86
+declare
+cMesec Obracuni.Obracun_za%Type;
+nBrojObracuna Number := 212;
+cTipObracuna Varchar2(2) := '1';
+
+       nStanuje Number;
+
+       Cursor Stanuje_Cur Is
+       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%' ;
+nRbr Number := 0;
+
+       Cursor PorezNaDohodak ( nStanuje In Number ) Is
+       Select nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = cTipObracuna And
+             Lista_Obr_Obracun = nBrojObracuna And
+             Lista_Radnik_Radnik= Radnik And OPS_OPSTINA_ZIVI_U = nStanuje And
+             Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12';
+       nPorezNaDohodak Number;
+
+       Cursor PorezNaDohodakPre ( nStanuje In Number ) Is
+       Select nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = cTipObracuna And
+             Lista_Obr_Obracun = nBrojObracuna And
+             Lista_Radnik_Radnik= Radnik And OPS_OPSTINA_ZIVI_U = nStanuje And
+             Dlis_Type ='D_ZBIR' AND Zbir_Zbir='86';
+       nPorezNaDohodakPre Number;
+
+       cKreditor VarChar2( 6 );
+
+Begin
+			Select Obracun_Za Into cMesec
+            From Obracuni
+            Where Obracun = nBrojObracuna and Tio_Tip_Obracuna = cTipObracuna;
+
+            dbms_output.put_line('mesec '|| cMesec);
+
+       Open Stanuje_Cur;
+       Loop
+
+          Fetch Stanuje_Cur Into nStanuje;
+          Exit When Stanuje_Cur %NOTFOUND;
+               nRbr := nRbr + 1;
+               dbms_output.put_line('rbr ' || rpad(to_char(nRbr),5,' ') || ' opst '|| rpad(to_char(nStanuje),7,' '));
+
+		          Open PorezNaDohodak( nStanuje );
+		          Fetch PorezNaDohodak Into nPorezNaDohodak;
+		          If PorezNaDohodak % NOTFOUND Then
+		             nPorezNaDohodak := Null;
+		          End If;
+		          Close PorezNaDohodak;
+		          Open PorezNaDohodakPre( nStanuje );
+		          Fetch PorezNaDohodakPre Into nPorezNaDohodakPre;
+		          If PorezNaDohodakPre % NOTFOUND Then
+		             nPorezNaDohodakPre := Null;
+		          End If;
+		          Close PorezNaDohodakPre;
+               dbms_output.put_line(' porez plate     ' || rpad(to_char(nvl(nPorezNaDohodak,0)),10,' ') ||
+                                    ' porez plate pre ' || rpad(to_char(nvl(nPorezNaDohodakPre,0)),10,' ')
+                                   );
+      end loop;
+      Close Stanuje_Cur;
+
+
+          If nPorezNaDohodak Is Not Null And nPorezNaDohodak != 0 Then
+             Begin
+                Select Kreditor
+                Into cKreditor
+                From Kreditori
+                Where Kreditor Like '0001%' And Postanski_Broj = nStanuje;
+             dbms_output.put_line ( 'kreditor '||cKreditor);
+             Exception
+               When NO_DATA_FOUND Then
+             dbms_output.put_line ( 'Nije definisan kreditor za uplatu poreza na dohodak gradjana za opstinu sa post. brojem '||To_Char(nStanuje));
+             End;
+          End If;
+
+
+End;
+"REM WORKSPACETAB10",Query16,,9
+Select *--POSTANSKI_BROJ, count(*)
+from kreditori
+where postanski_broj in ('11030','18412','11051')
+and
+Kreditor Like '0001%'
+--Group by POSTANSKI_BROJ
+--having count(*) > 1
+order by postanski_broj
+, kreditor
+"REM WORKSPACETAB11",Query13,,27
+select OPS_OPSTINA_ZIVI_U
+, (      Select nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = '1' And
+             Lista_Obr_Obracun = 212 And
+             Lista_Radnik_Radnik= Radnik And OPS_OPSTINA_ZIVI_U = OPS_OPSTINA_ZIVI_U And
+             Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12'
+   ) Porez_doh
+
+, (      Select nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = '1' And
+             Lista_Obr_Obracun = 212 And
+             Lista_Radnik_Radnik= Radnik And OPS_OPSTINA_ZIVI_U = OPS_OPSTINA_ZIVI_U And
+             Dlis_Type ='D_ZBIR' AND Zbir_Zbir='86'
+   ) Porez_doh_pre
+
+from
+(
+       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%'
+) ops
+"REM WORKSPACETAB12",Query11,,2
+select * from OBRACUNI
+where obracun = 212
+"REM WORKSPACETAB13",PorezNaDohPre,,18
+       Select d1.LISTA_RADNIK_RADNIK --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste d1, Radnici r1
+       Where d1.Lista_Obr_Tio_Tip_Obracuna = '1'
+         And d1.Lista_Obr_Obracun = 212
+         And d1.Lista_Radnik_Radnik= Radnik
+         And r1.OPS_OPSTINA_ZIVI_U
+             in (Select Distinct OPS_OPSTINA_ZIVI_U
+                 From Radnici
+                 Where Radnik Not Like '_999%'
+                 Union
+                 Select Distinct OPS_PRIJAVE
+                 From Radnici
+                 Where Radnik Not Like '_999%')
+                   And Dlis_Type ='D_ZBIR'
+                   AND Zbir_Zbir='86'
+--group by OPS_OPSTINA_ZIVI_U
+--order by OPS_OPSTINA_ZIVI_U
+order by to_number(LISTA_RADNIK_RADNIK)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB14",Query8,,6
+       Select * --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste
+       Where Lista_Obr_Tio_Tip_Obracuna = '1'
+         And Lista_Obr_Obracun = 212
+         And Lista_Radnik_Radnik= '001723'
+order by to_number(LISTA_RADNIK_RADNIK)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB15",Query7,,15
+Select *
+From Detalji_Liste
+Where Lista_Obr_Tio_Tip_Obracuna = '1'
+  And Lista_Obr_Obracun = 212
+--  And OPS_OPSTINA_ZIVI_U
+--      in (Select Distinct OPS_OPSTINA_ZIVI_U
+--          From Radnici
+--          Where Radnik Not Like '_999%'
+--          Union
+--          Select Distinct OPS_PRIJAVE
+--          From Radnici
+--          Where Radnik Not Like '_999%')
+--            And Dlis_Type ='D_ZBIR'
+--            AND Zbir_Zbir='86'
+--

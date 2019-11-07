@@ -1,0 +1,150 @@
+"REM WORKSPACETAB0","tab zalihe po GOD_MAG_DATUMI.sql",,34
+
+--Create table ZALIHE_GOD_MAG_DATUMI
+--as
+select * from
+(
+Select d.org_deo, d.godina, sd.proizvod
+	    , (Select max(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok = '21' And d1.Status = 1 And d1.org_Deo = d.org_Deo
+		     and d1.godina = d.godina
+		  --   and
+	      )  max_dat_ps
+	    , (Select min(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok != '21' And d1.Status = 1 And
+		   d1.org_Deo = d.org_Deo
+		     and d1.godina = d.godina
+		     and d1.datum_dok > to_date('31.12.1995','dd.mm.yyyy')
+	      )  min_dat_dok
+        , (Select MAX(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok != '21' And d1.Status = 1 And d1.org_Deo = d.org_Deo
+		     and d1.godina = d.godina
+		     and d1.datum_dok > to_date('31.12.1995','dd.mm.yyyy')
+	      )  max_dat_dok
+
+
+From Dokument d, stavka_Dok sd
+Where d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  and d.status > 0
+  and d.org_Deo not in (select magacin from partner_magacin_flag)
+  and k_robe <> 0
+Group by d.godina, d.org_deo, sd.proizvod
+)
+--where godina= 2006
+--Order by org_deo, to_number(proizvod), godina
+Order by org_deo, godina, to_number(proizvod)
+"REM WORKSPACETAB1","tab zalihe po mesecima.sql",,46
+CREATE TABLE MONUS.ZALIHE_GOD_MAG_DATUMI
+(
+    ORG_DEO      NUMBER      NOT NULL,
+    GODINA       NUMBER(4,0) NOT NULL,
+    PROIZVOD     VARCHAR2(7) NOT NULL,
+    MAX_DAT_PS   DATE            NULL,
+    MIN_DAT_DOK  DATE            NULL,
+    MAX_DAT_DOK  DATE            NULL,
+    STANJE_PO_PS DATE            NULL,
+    DAT_PS_1998  DATE            NULL,
+    DAT_PS_1999  DATE            NULL,
+    DAT_PS_2000  DATE            NULL,
+    DAT_PS_2001  DATE            NULL,
+    DAT_PS_2002  DATE            NULL,
+    DAT_PS_2003  DATE            NULL,
+    DAT_PS_2004  DATE            NULL,
+    DAT_PS_2005  DATE            NULL,
+    DAT_PS_2006  DATE            NULL,
+    DAT_PS_2007  DATE            NULL,
+    DAT_PS_2008  DATE            NULL,
+    DAT_PS_2009  DATE            NULL,
+    DAT_PS_2010  DATE            NULL
+)
+ORGANIZATION HEAP
+TABLESPACE DES2
+LOGGING
+PCTFREE 10
+PCTUSED 0
+INITRANS 1
+MAXTRANS 255
+STORAGE(BUFFER_POOL DEFAULT)
+NOPARALLEL
+NOCACHE
+/
+ALTER TABLE MONUS.ZALIHE_GOD_MAG_DATUMI
+    ADD CONSTRAINT ZALIHE_GOD_MAG_DATUMI_PK
+    PRIMARY KEY (ORG_DEO,GODINA,PROIZVOD)
+    USING INDEX TABLESPACE DES2
+                PCTFREE 10
+                INITRANS 2
+                MAXTRANS 255
+                STORAGE(BUFFER_POOL DEFAULT)
+    LOGGING
+    ENABLE
+    VALIDATE
+/
+"REM WORKSPACETAB2",Provera,,32
+--select * from
+--(
+select t.*
+
+
+, (Select MAX(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok != '21' And d1.Status = 1 And d1.org_Deo = T.org_Deo
+		     and d1.godina = t.godina
+		     and d1.datum_dok > to_date('31.12.1995','dd.mm.yyyy')
+	      )  max_dat_dok1
+
+	    , (Select max(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok = '21' And d1.Status = 1 And d1.org_Deo = t.org_Deo
+		     and d1.godina = t.godina - 1
+		  --   and
+	      )  max_dat_ps_pre
+, (Select Min(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok != '21' And d1.Status = 1 And d1.org_Deo = T.org_Deo
+		     and d1.godina < t.godina
+		     and d1.datum_dok > to_date('31.12.1995','dd.mm.yyyy')
+	      )  max_dat_dok
+
+from ZALIHE_GOD_MAG_DATUMI t
+--WHERE
+
+--MAX_DAT_PS>MIN_DAT_DOK
+--ORG_DEO = 128
+
+--)
+--where max_dat_dok <> max_dat_dok1
+--where MAX_DAT_PS>MIN_DAT_DOK
+where MAX_DAT_PS is null
+"REM WORKSPACETAB3",Query8,,5
+select t.*
+
+
+from ZALIHE_GOD_MAG_DATUMI t
+where MAX_DAT_PS is null
+"REM WORKSPACETAB4",Query7,,10
+Update ZALIHE_GOD_MAG_DATUMI t
+
+
+set max_dat_dok = (Select MAX(to_date(d1.datum_dok)) From dokument d1
+		   Where d1.vrsta_Dok != '21' And d1.Status = 1 And d1.org_Deo = T.org_Deo
+		     and d1.godina = t.godina
+		     and d1.datum_dok > to_date('31.12.1995','dd.mm.yyyy')
+	      )
+
+
+"REM WORKSPACETAB5",Query5,,3
+select * from  all_objects
+where OBJECT_TYPE ='TABLE'
+  and OBJECT_NAME = 'ZALIHE_GOD_MAG_DATUMI'
+"REM WORKSPACETAB6",Query4,,13
+select proizvod, sum(kolicina*faktor*k_robe)
+from dokument d, stavka_dok sd
+Where
+  -- veza tabela
+      d.godina = sd.godina (+) and d.vrsta_dok = sd.vrsta_dok (+) and d.broj_dok = sd.broj_dok  (+)
+
+  -----------------------------
+--  AND TIP_DOK = 11
+and d.godina = 2010
+AND D.ORG_DEO = 119
+and k_robe <> 0
+group by proizvod
+having sum(kolicina*faktor*k_robe) > 0

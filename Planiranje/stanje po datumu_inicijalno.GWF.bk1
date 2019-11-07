@@ -1,0 +1,155 @@
+"REM WORKSPACETAB0",POCETNA_STANJA,,20
+--INSERT INTO ZAL_GOD_MAG_DAT
+    --   GODINA, ORG_DEO,          PS, BRDOK,                     MES,    PROIZVOD,      NA_DAT,                                  KOL
+SELECT D.godina, org_deo, D.DATUM_DOK,     0, TO_CHAR(datum_dok,'MM'), SD.PROIZVOD, D.DATUM_DOK, SUM(SD.KOLICINA*SD.K_ROBE*SD.FAKTOR)
+FROM dokument d, stavka_dok sd
+WHERE d.vrsta_dok = '21'
+  and status = '1'
+--  and org_Deo <> '67'
+  and datum_dok = (
+                   Select max(datum_dok)
+                   From dokument d1
+                   where d1.vrsta_dok = '21' and d1.status = '1' and d1.godina = d.godina and d1.org_Deo = d.org_deo -- and org_Deo <> '67'
+                   )
+  AND D.BROJ_DOK=SD.BROJ_DOK AND D.VRSTA_DOK=SD.VRSTA_DOK AND D.GODINA=SD.GODINA
+
+--  and  org_deo in (2,3,4)
+--  and d.godina = 2011
+
+Group by D.godina, D.org_deo, D.datum_dok, SD.PROIZVOD
+
+order by org_Deo
+"REM WORKSPACETAB1",Zal_god_MAX_dat,,4
+select god, max(NA_DAT)
+from ZAL_GOD_MAG_DAT
+group by god
+order by god
+"REM WORKSPACETAB2",Query16,,3
+select *
+from ZAL_GOD_MAG_DAT
+where na_dat > to_date('12.04.2011','dd.mm.yyyy')
+"REM WORKSPACETAB3",Query17,,2
+delete ZAL_GOD_MAG_DAT
+where na_dat > to_date('12.04.2011','dd.mm.yyyy')
+"REM WORKSPACETAB4","punjenje tabele ZAL_GOD_MAG_DAT.sql",,43
+DECLARE
+ -- ALBUS to_date('09.03.2011','dd.mm.yyyy');
+ dDatStart Date := to_date('03.08.2011','dd.mm.yyyy');
+
+ cursor dat_cur is
+    select dDatStart dat from dual;
+ dat dat_cur % rowtype;
+ dat1 Date;
+BEGIN
+
+ Dbms_output.Put_line('Datumi');
+ Dbms_output.Put_line('----------');
+ WHILE dDatStart < to_date('04.08.2011','dd.mm.yyyy')--sysdate
+-- WHILE dDatStart < sysdate
+ loop
+   Open dat_cur;
+   Fetch dat_cur into dat;
+   dat1 := dat.dat;
+--   dat1 := dat1 - 1;
+
+--   IF   dat.dat = TO_DATE('01.01.'||to_char(dat.dat,'YYYY'),'dd.mm.yyyy') then
+--        Dbms_output.Put_line('Preskoci '|| to_char(dat.dat,'dd.mm.yyyy hh24:mi:ss'));
+--   Els
+   If dat.dat = TO_DATE('01.01.'||to_char(dat.dat,'YYYY'),'dd.mm.yyyy') then
+        Dbms_output.Put_line('Preskoci '|| to_char(dat.dat,'dd.mm.yyyy hh24:mi:ss'));
+   Else
+
+   Dbms_output.Put_line(to_char(dat.dat,'dd.mm.yyyy hh24:mi:ss')
+                        || ' sys date trunc ' || to_char(TRUNC(sysdate))
+                       );
+   GenerisiStanjeZalNaDan(null,dat.dat);
+   commit;
+
+   End If;
+
+   Close dat_cur;
+   dDatStart := dDatStart + 1;
+ end loop;
+--SELECT DISTINCT NA_DAT
+--FROM ZAL_GOD_MAG_DAT
+--WHERE NA_DAT >= TO_DATE('01.01.2011')
+
+END;
+"REM WORKSPACETAB5",Query11,,2
+Exec generisiStanjeZaliha(53,sysdate,true);
+--Exec generisiStanjeZaliha(93,sysdate,true);
+"REM WORKSPACETAB6",Query12,,3
+Select * from zalihe
+where org_deo in (53)
+and (stanje < 0 or stanje < rezervisana)
+"REM WORKSPACETAB7",Query13,,11
+select d.vrsta_dok, d.tip_dok, d.datum_dok, count(*) ukupno-- avg(count(*) ) prosek
+from dokument d
+
+Where godina > 2009
+  and (
+         (   d.vrsta_dok = '92' and d.tip_dok='906')
+       or
+         (   d.vrsta_dok = '92' and d.tip_dok='916')
+      )
+Group by d.datum_dok, d.vrsta_dok, d.tip_dok
+order by d.vrsta_dok, d.tip_dok, d.datum_dok
+"REM WORKSPACETAB8","Prosek dokumenata",,22
+select vrsta_dok, tip_dok, avg(ukupno ) prosek
+from
+(
+
+select d.vrsta_dok, d.tip_dok, d.datum_dok, count(*) ukupno--
+from dokument d
+
+Where godina > 2009
+  and (
+         (   d.vrsta_dok = '92' and d.tip_dok='906')
+       or
+         (   d.vrsta_dok = '92' and d.tip_dok='916')
+       or
+         (   d.vrsta_dok = '91' and d.tip_dok='904')
+
+
+      )
+and datum_dok between to_date('01.06.2010','dd.mm.yyyy')      and to_date('01.04.2011','dd.mm.yyyy')
+Group by d.datum_dok, d.vrsta_dok, d.tip_dok
+)
+Group by vrsta_dok, tip_dok
+order by vrsta_dok, tip_dok
+"REM WORKSPACETAB9",Query6,,2
+eXEC GenerisiStanjeZalNaDan(null,NULL);
+COMMIT;
+"REM WORKSPACETAB10",Query7,,3
+SELECT * FROM ZAL_GOD_MAG_DAT
+WHERE NA_DAT = '08.03.2011 00:00:00'
+--WHERE STANJE < 0
+"REM WORKSPACETAB11","brisi PODATKE",,3
+DELETE ZAL_GOD_MAG_DAT
+WHERE NA_DAT = '11.04.2011 00:00:00';
+COMMIT;
+"REM WORKSPACETAB12","MAP NADJI MAG GP ",,10
+select distinct org_Deo
+from dokument d , stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+--from dokument d, stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  AND ORG_dEO <> '67'
+  and p.tip_proizvoda = '1'
+"REM WORKSPACETAB13",MAP_PUNI,,4
+select rowid, m.*
+from mapiranje m
+where m.modul = 'MAGACIN'
+  and m.VRSTA = 'PROIZVODI OK';
+"REM WORKSPACETAB14",zal_god_mag_dat,,6
+Select z.*
+From ZAL_GOD_MAG_DAT z
+order by na_dat
+/
+
+--truncate table ZAL_GOD_MAG_DAT
+"REM WORKSPACETAB15",VR_TIP_GRUPA,,1
+sELECT * FROM VR_TIP_DOK_GRUPISANJE

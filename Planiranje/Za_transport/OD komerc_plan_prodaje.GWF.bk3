@@ -1,0 +1,54 @@
+"REM WORKSPACETAB0","OD komerc_plan_prodaje",,45
+       SELECT
+              KUPAC_SIFRA
+            , pp.naziv naziv_kupca
+            , KUPAC_MI
+            , mi.NAZIV_KORISNIKA
+
+            , k.PROIZVOD
+            , SUM(KOLICINA) KOLICINA
+            , sum(kolicina/a.za_kolicinu) pal
+
+            , kv.firma
+            , kv.kratak_naziv
+       From komerc_plan_prodaje@konsolid k
+          , poslovni_partner pp, mesto_isporuke mi
+          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+             From katalog_view K, firme f
+             Where f.id=k.firma
+             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+            ) kv
+
+
+       WHERE
+
+             K.DATUM BETWEEN &Datum_od AND &Datum_do
+
+         and pp.sifra = k.KUPAC_SIFRA
+         and mi.ppartner=pp.sifra
+         and mi.sifra_mesta=k.KUPAC_MI
+
+         and k.proizvod=a.proizvod (+)
+         and k.proizvod=kv.proizvod (+)
+
+    GROUP BY
+             k.KUPAC_SIFRA, k.KUPAC_MI
+           , k.PROIZVOD
+           , pp.naziv
+           , mi.NAZIV_KORISNIKA
+           , kv.firma
+           , kv.kratak_naziv
+    ORDER BY
+             kv.kratak_naziv
+           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+           , to_number(k.PROIZVOD)
+	;
+"REM WORKSPACETAB1",Query2,,2
+select * from AMBALAZA
+where proizvod=3201
+"REM WORKSPACETAB2",Query3,,4
+Select firma, dobavljac, proizvod from katalog_view
+where firma=4
+Group by firma, dobavljac, proizvod
+Order by to_number(proizvod)

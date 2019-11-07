@@ -1,0 +1,21 @@
+"REM WORKSPACETAB0",Query1,,6
+Select * from planiranje_ZAGLAVLJE
+where plan_tip_id = 3
+and plan_ciklus_id =2009
+and plan_period_id = 4
+and plan_trajanje_id=20
+and broj_dok=1
+"REM WORKSPACETAB1",Query2,,6
+Select * from planiranje_VARIJANTA
+where plan_tip_id = 3
+and plan_ciklus_id =2009
+and plan_period_id = 4
+and plan_trajanje_id=20
+and broj_dok=1
+"REM WORKSPACETAB2",Query3,,6
+Select * from planiranje_STAVKA
+where plan_tip_id = 3
+and plan_ciklus_id =2009
+and plan_period_id = 4
+and plan_trajanje_id=20
+and broj_dok=1

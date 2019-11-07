@@ -1,0 +1,1080 @@
+"REM WORKSPACETAB0","Upit sa konsolida - inv kol",,13
+Select *
+from K_ZALIHE_INVEJ_FABRIKE_NAB_DAT@CITAJ_KON  K
+--where inv_mag=113
+WHERE inv_godina=2012 and INV_MAG=113
+  and inv_datum_dok BETWEEN TO_DATE('01.02.2012','DD.MM.YYYY') AND TO_DATE('29.02.2012','DD.MM.YYYY')
+  AND FAB_PRO = '160255'
+  AND INV_DATUM_DOK = (SELECT MAX(K1.INV_DATUM_DOK)
+                       FROM K_ZALIHE_INVEJ_FABRIKE_NAB_DAT@CITAJ_KON K1
+                       WHERE K1.inv_godina=2012 and K1.INV_MAG=113
+                         and K1.inv_datum_dok BETWEEN TO_DATE('01.02.2012','DD.MM.YYYY') AND TO_DATE('29.02.2012','DD.MM.YYYY')
+                         AND K1.FAB_PRO = '160255'
+                       )
+Order by INV_godina, INV_datum_dok, INV_MAG, INV_PRO
+"REM WORKSPACETAB1","mat bil cur K0",,166
+   				SELECT
+				       plan.GOTOV_PR_SIFRA
+				     , plan.GOTOV_PR_NAZIV
+				     , plan.GOTOV_PR_JM
+				     , plan.GOTOV_PR_POSGR
+				     , plan.GOTOV_PR_PLAN_ZELJENA_KOL GOTOV_PR_PLAN_ZELJENA_KOL_sum
+				     , plan.TIP_PROIZVODA
+				     , sum(STANJE_ZAL)STANJE_ZAL
+				     , sum(STANJE_NA_DAN) STANJE_NA_DAN
+--				     , proizv.proizvedeno proizvedeno
+				     , CASE WHEN proizv.proizvedeno > 0 THEN
+				                 proizv.proizvedeno
+				       Else
+				            null
+				       End  proizvedeno
+				     , case when nvl(GOTOV_PR_PLAN_ZELJENA_KOL,0) != 0 then
+				                 round(PROIZVEDENO / GOTOV_PR_PLAN_ZELJENA_KOL  * 100, 2)
+				       else
+			                     null
+				       end PROIZVEDENO_PROC
+				     , NVL(PROIZVEDENO,0) - NVL(GOTOV_PR_PLAN_ZELJENA_KOL,0) PROIZVEDENO_ODST
+				FROM
+				(
+					SELECT
+
+							distinct gotov_pr_sifra
+							       , gotov_pr_naziv
+								   , gotov_pr_jm
+								   , GOTOV_PR_POSGR
+				                   , gotov_pr_plan_zeljena_kol
+				                   , p.tip_proizvoda
+				                   , plv.ORG_DEO_ID
+					FROM PLANIRANJE_VIEW plv
+				       , PROIZVOD P
+					WHERE plv.PLAN_CIKLUS_ID= &c_ciklus_id
+					  AND plv.PLAN_TIP_ID= &c_tip_id
+					  AND plv.PLAN_PERIOD_ID= &c_period_id
+					  AND plv.PLAN_TRAJANJE_ID= &c_trajanje_id
+					  AND plv.broj_dok= &c_broj_dok
+					  and plv.org_deo_id = &c_org_deo_id
+					  and plv.varijanta_id= &c_varijanta_id
+
+				      AND p.sifra = plv.gotov_pr_sifra
+				) plan
+				,
+				(
+						select
+						       d.org_deo
+						     , sd.proizvod
+						     , p.tip_proizvoda
+						     , round(Sum(NVL(decode(d.tip_dok,14,Kolicina,realizovano)*Faktor
+						                            * case when d.vrsta_dok = '90' then
+						                                        0
+						                              else
+						                                        K_ROBE
+						                              end
+						                     ,0)
+						                 )
+						            ,5) STANJE_ZAL
+						     , ROUND(sum(case when d.datum_dok <=  &g_trajanje_datum_od
+--						      between to_date('01.01.'||to_char(&g_trajanje_datum_od,'yyyy'),'dd.mm.yyyy')
+--						                                           and
+--						                                           &g_trajanje_datum_od
+						                                           then
+										     NVL(
+										           decode(d.tip_dok,14,Kolicina,realizovano)*Faktor
+										                     * case when d.vrsta_dok = '90' then
+										                                 0
+										                       else
+										                                 K_ROBE
+										                       end
+
+										        ,0)
+						                 ELSE
+						                     0
+						                 End
+						                )
+						           ,5) STANJE_NA_DAN
+						from Stavka_dok sd, dokument d, Proizvod p
+						   , (select VREDNOST from PLANIRANJE_MAPIRANJE  where VRSTA ='GOT_PROIZVODI_TIPOVI' ) pm
+						   , (select VREDNOST from PLANIRANJE_MAPIRANJE  where VRSTA ='POLUPROIZVODI_TIPOVI' ) pm1
+						Where d.broj_dok>0
+			 	          and (   d.vrsta_Dok != '2'
+			 	               or d.vrsta_Dok != '9'
+			 	               or d.vrsta_Dok != '10'
+			 	              )
+			 	          and d.godina= &c_ciklus_id
+						  and d.status > 0
+						  and d.org_Deo in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='MAGACINI_PROIZVODI_OK' )
+						  and d.datum_dok between to_date('01.01.'||TO_CHAR(SYSDATE,'YYYY'),'dd.mm.yyyy')
+						                      and sysdate
+						  and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+						  and sd.k_robe != 0
+						  and p.sifra=sd.proizvod
+						  and ( p.tip_proizvoda = pm.vrednost
+						        or
+						        p.tip_proizvoda = pm1.vrednost
+						      )
+						  and sd.proizvod in
+											(
+													SELECT
+
+															distinct gotov_pr_sifra
+													FROM PLANIRANJE_VIEW plv
+													WHERE plv.PLAN_CIKLUS_ID= &c_ciklus_id
+													  AND plv.PLAN_TIP_ID= &c_tip_id
+													  AND plv.PLAN_PERIOD_ID= &c_period_id
+													  AND plv.PLAN_TRAJANJE_ID= &c_trajanje_id
+													  AND plv.broj_dok= &c_broj_dok
+													  and plv.org_deo_id =  &c_org_deo_id
+													  and plv.varijanta_id= &c_varijanta_id
+
+											)
+						Group by d.org_deo, sd.proizvod, p.tip_proizvoda
+				) d
+				,(Select sdp.proizvod
+				       , Sum( Round( Decode( dp.Vrsta_Dok || dp.Tip_Dok,
+					                          '314', sdp.Kolicina,
+					                          '414', sdp.Kolicina,
+					            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 ) ) proizvedeno
+				  From dokument dp, stavka_dok sdp
+--				     , (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='MAGACINI_PROIZVODI_OK' ) pm
+				  Where dp.broj_dok>0
+				    and (    dp.vrsta_Dok = '1'
+				          or dp.vrsta_Dok = '26'
+				          or dp.vrsta_Dok = '45'
+				          or dp.vrsta_Dok = '46')
+				    and dp.GODINA = &c_ciklus_id
+				    and dp.status > 0
+--				    and dp.org_Deo = pm.vrednost
+				    and dp.datum_dok between &g_trajanje_datum_od--to_date('01.01.'||TO_CHAR( &c_ciklus_id),'dd.mm.yyyy')
+					                     and &g_trajanje_datum_do
+				    and dp.godina = sdp.godina and dp.vrsta_dok = sdp.vrsta_dok and dp.broj_dok = sdp.broj_dok
+				    and sdp.k_robe != 0
+				    and sdp.proizvod in
+									(
+											SELECT
+
+													distinct gotov_pr_sifra
+											FROM PLANIRANJE_VIEW plv
+											WHERE plv.PLAN_CIKLUS_ID= &c_ciklus_id
+											  AND plv.PLAN_TIP_ID= &c_tip_id
+											  AND plv.PLAN_PERIOD_ID= &c_period_id
+											  AND plv.PLAN_TRAJANJE_ID= &c_trajanje_id
+											  AND plv.broj_dok= &c_broj_dok
+											  and plv.org_deo_id =  &c_org_deo_id
+											  and plv.varijanta_id= &c_varijanta_id
+
+									)
+
+				  Group by sdp.proizvod
+				 ) proizv
+
+			    WHERE plan.GOTOV_PR_SIFRA=D.PROIZVOD(+)
+			      And plan.GOTOV_PR_SIFRA=proizv.proizvod(+)
+				Group by plan.GOTOV_PR_SIFRA
+			 	       , plan.GOTOV_PR_NAZIV
+				       , plan.GOTOV_PR_JM
+				       , plan.GOTOV_PR_POSGR
+				       , plan.GOTOV_PR_PLAN_ZELJENA_KOL
+				       , plan.TIP_PROIZVODA
+			           , proizv.proizvedeno
+
+			    Order by tip_proizvoda, GOTOV_PR_POSGR, gotov_pr_naziv
+
+ 			        ;
+"REM WORKSPACETAB2","mat bil cur K1",,503
+			select
+			      plan.MATERIJAL_TIP
+			    , plan.MATERIJAL_SIFRA
+			    , plan.MATERIJAL_NAZIV
+			    , plan.MATERIJAL_KOL_SUM
+			    , plan.MATERIJAL_JED_MERE
+			    , plan.MATERIJAL_ZADNJA_NABAVNA_CENA
+			    , plan.MATERIJAL_POSGR
+			    , nabavljeno
+			    , stanje_zal
+			    , stanje_na_dan
+			    , kon.PRO_SIFRA_FIRMA
+			    , kon.PRO_INV_STANJE_NA_DAN
+	            , kontrola.kontrola_stanje
+	            , kon1.PRO_INV_STANJE
+	            , kotrola_inv.kontrola_inv_stanje
+	            , inv_ocek
+	            , treb.kol_treb
+	            , Pro_Pod.KOL_SIGNALNA
+			    , OCEK
+			    , OCEK_INV
+
+			    , CASE WHEN trunc(sysdate) - trunc( &g_trajanje_datum_do) > 0 THEN
+			                NULL
+			      ELSE
+			                case when MATERIJAL_KOL_SUM + NVL(OST_PLAN_materijal_kol_sum,0) - NVL(stanje_na_dan,0) + NVL(PRO_INV_STANJE_NA_DAN,0) > 0
+			                          then
+			                               MATERIJAL_KOL_SUM + NVL(OST_PLAN_materijal_kol_sum,0) - NVL(stanje_na_dan,0) + NVL(PRO_INV_STANJE_NA_DAN,0)
+			                else
+			                               null
+			                END
+			      end za_nabavku
+
+			    , CASE WHEN trunc(sysdate) - trunc( &g_trajanje_datum_do) > 0 THEN
+			                NULL
+			           ELSE
+
+			                CASE WHEN NVL(Pro_Pod.KOL_SIGNALNA,0) - stanje_zal > 0 THEN
+			                     Pro_Pod.KOL_SIGNALNA - stanje_zal + NVL(OCEK,0) + NVL(PRO_INV_STANJE,0) + NVL(OCEK_INV,0)
+			                ELSE
+			                     NULL
+			                END
+			       END         HITNA_NAB
+
+			    , CASE WHEN trunc(sysdate) - trunc( &g_trajanje_datum_do) > 0 THEN
+			                NULL
+			      ELSE
+					        case when  materijal_kol_sum  + nvl(OST_PLAN_materijal_kol_sum,0) + nvl(KOL_SIGNALNA,0)
+					           -
+					           ( nvl(stanje_na_dan,0) + nvl(PRO_INV_STANJE_NA_DAN,0) )  > 0
+					                 then
+
+					                 materijal_kol_sum  + nvl(OST_PLAN_materijal_kol_sum,0) + nvl(KOL_SIGNALNA,0)
+					           -
+					           ( nvl(stanje_na_dan,0) + nvl(PRO_INV_STANJE_NA_DAN,0) )
+					         else
+					                null
+					         END
+			      end           PLAN_NABAVKE
+
+			    , (select ZAD_NAB_CENA_DOK_VRED from proizvod where sifra = plan.MATERIJAL_SIFRA) zadnja_nabavna_cena
+
+			    , CASE WHEN materijal_kol_sum  + nvl(KOL_SIGNALNA,0) - ( nvl(stanje_na_dan,0) + nvl(PRO_INV_STANJE_NA_DAN,0) ) <> 0 THEN
+			                round(
+			                          nabavljeno / (materijal_kol_sum  + nvl(KOL_SIGNALNA,0) - ( nvl(stanje_na_dan,0) + nvl(PRO_INV_STANJE_NA_DAN,0) )
+			                ) * 100 , 2)  + 1
+			      ELSE
+			                 NULL
+			      END PLAN_NABAVKE_ODST_PROC
+			    , OST_PLAN_materijal_kol_sum
+			    , trunc(sysdate) - trunc( &g_trajanje_datum_do)  plan_view_status
+			from
+			(
+				 select
+				        /*+ INDEX(planiranje_stavka planir_s_pk) */
+				        materijal_tip
+				      , materijal_sifra
+				      , materijal_naziv
+				      , sum(materijal_plan_potrebna_kol) materijal_kol_sum
+				      , materijal_jed_mere
+				      , materijal_zadnja_nabavna_cena
+					  , MATERIJAL_POSGR
+					  ---------------------------------------------------------------------------------------------------
+					 from planiranje_view
+					where
+				           plan_tip_id         =  &c_tip_id
+				      and  plan_ciklus_id      =  &c_ciklus_id
+				      and  plan_period_id      =  &c_period_id
+				      and  plan_trajanje_id    =  &c_trajanje_id
+				      and  broj_dok   =  &c_broj_dok
+--				      and  broj_dok1  =  &c_broj_dok1
+				      and  org_deo_id =  &G_org_deo_id
+					  and  varijanta_id     =  &c_varijanta_id
+				 	  --**********************************************************************************************************************************--
+				 	  --**********************************************************************************************************************************--
+
+					  and  status_stavka       = 1
+			          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+			                                     FROM PLANIRANJE_MAPIRANJE
+			                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+			                                    )
+				 group by
+				          materijal_tip
+				        , materijal_sifra
+				        , materijal_naziv
+				        , materijal_jed_mere
+				        , materijal_zadnja_nabavna_cena
+						, MATERIJAL_POSGR
+				 order by
+						   MATERIJAL_POSGR
+			 		     , materijal_naziv
+			) plan
+
+			,(
+					SELECT sdp.proizvod
+
+			             , sum(case when dp.vrsta_Dok in( '3','4','5','30') AND
+--			                             dp.datum_dok <=  &g_trajanje_datum_od AND
+			                             dp.datum_dok between  &g_trajanje_datum_od AND &g_trajanje_datum_do And
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+			                   else
+			                             null
+			                   end
+			                   ) nabavljeno
+
+			             , round(sum(case when dp.vrsta_dok not in ('2','9','10','80','90') then
+			                                   decode(dp.tip_dok,14,sdp.Kolicina,sdp.realizovano)*sdp.Faktor*sdp.K_ROBE
+			                         else
+			                                   null
+			                         end)
+
+			                    ,5) STANJE_ZAL
+
+			             , round(sum(case when dp.vrsta_dok not in ('2','9','10','80','90') and
+			                                   dP.datum_dok <=  &g_trajanje_datum_od
+			                                   then
+			                                   decode(dp.tip_dok,14,sdp.Kolicina,sdp.realizovano)*sdp.Faktor*sdp.K_ROBE
+			                         else
+			                                   null
+			                         end)
+
+			                    ,5) STANJE_NA_DAN
+
+					FROM dokument dp, stavka_dok sdp
+					   , PLANIRANJE_ORG_DEO_MAGACIN PM
+					WHERE pm.org_deo_id=  &c_org_deo_id and pm.magacin_id=dp.org_Deo
+			          and dp.broj_dok>0
+			          and dp.vrsta_Dok > '0'
+			          and dp.GODINA = &c_ciklus_id
+				      and dp.status > 0
+
+				      and dp.datum_dok between to_date('01.01.'|| &c_ciklus_id,'dd.mm.yyyy')
+			                               and to_date('31.12.'|| &c_ciklus_id,'dd.mm.yyyy')
+			 	      and dp.godina = sdp.godina and dp.vrsta_dok = sdp.vrsta_dok and dp.broj_dok = sdp.broj_dok
+			        and sdp.proizvod in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+
+			        group by sdp.proizvod
+			) d
+			,
+			(
+				select SIFRA_FIRMA PRO_SIFRA_FIRMA, SUM(STANJE) PRO_INV_STANJE_NA_DAN
+				from ZAL_GOD_MAG_DAT_INV@CITAJ_KON z
+				where z.na_dat = &g_trajanje_datum_od
+				  and z.god = to_char(&g_trajanje_datum_od,'yyyy')
+				  and nvl(STANJE,'0') >= '0'
+				  and z.firma = (select iz01 from MAPIRANJE
+								  where modul='FIRMA' and ul01 = 'FIR')
+			        and z.sifra_firma in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+
+			    GROUP BY SIFRA_FIRMA
+			) kon
+			,
+			(select sd.proizvod kontrola_pro, nvl(sum(sd.kolicina*sd.faktor),0)  kontrola_stanje
+		       from dokument d
+		          , stavka_dok sd
+			  where d.broj_dok>0
+			    and d.vrsta_dok = '3'
+			    and d.godina = to_char(&g_trajanje_datum_od,'yyyy')
+			    and d.broj_dok=sd.broj_dok
+			    and d.vrsta_dok=sd.vrsta_dok
+			    and d.godina=sd.godina
+			    and d.status < 0
+
+		        and d.datum_dok between &g_trajanje_datum_od and &g_trajanje_datum_do
+			        and sd.proizvod in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+
+		     Group by sd.proizvod
+			) kontrola
+			,
+			(
+			    Select SIFRA_FIRMA PRO_SIFRA_FIRMA, sum(stanje)  PRO_INV_STANJE
+			    From INVEJ_ZALIHE_FIRME@CITAJ_KON
+			    Where firma = (select iz01 from MAPIRANJE
+			                   where modul='FIRMA' and ul01 = 'FIR')
+			      and vrsta = 'NAB'
+			        and sifra_firma in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+
+			    GROUP BY SIFRA_FIRMA
+
+			) kon1
+			,
+			(
+			    Select SIFRA_FIRMA kontrola_pro, sum(nvl(kontrola,0))  kontrola_inv_stanje
+			    From INVEJ_ZALIHE_FIRME_KONTR@CITAJ_KON zo
+			    Where zo.firma = (select iz01 from MAPIRANJE
+				   			      where modul='FIRMA' and ul01 = 'FIR')
+			      and zo.datum_dok between &g_trajanje_datum_od and &g_trajanje_datum_do
+			        and zo.sifra_firma in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+
+			    Group by SIFRA_FIRMA
+			) kotrola_inv
+			,
+			(
+				select SIFRA_FIRMA kontrola_pro, sum(nvl(ocekivano,0)) inv_ocek
+				  from INVEJ_ZALIHE_FIRME_OCEK@CITAJ_KON zo
+				 where zo.firma = (select iz01 from MAPIRANJE
+								    where modul='FIRMA' and ul01 = 'FIR')
+				  and zo.datum_dok between &g_trajanje_datum_od and &g_trajanje_datum_do
+			        and sifra_firma in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+
+			    Group by SIFRA_FIRMA
+			) inv_ocek
+			,
+			(
+				 select sd.proizvod, sum(nvl(sd.kolicina*sd.faktor, 0)) kol_treb
+			       from dokument d
+			          , stavka_dok sd
+				  where d.vrsta_dok = '8'
+				    and d.status < 0
+			        and d.datum_dok between &g_trajanje_datum_od and &g_trajanje_datum_do
+			        AND d.broj_dok=sd.broj_dok and d.vrsta_dok=sd.vrsta_dok and d.godina=sd.godina
+			        and sd.proizvod in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+			     group by sd.proizvod
+			) treb
+			,
+			(
+			   select *
+				 from PROIZVOD_PODACI
+			) Pro_Pod
+			,
+			(
+			     select SD.PROIZVOD, nvl(sum(sd.kolicina-sd.realizovano),0) OCEK
+			       from dokument d
+			          , stavka_dok sd
+				  where d.vrsta_dok = '2'
+				    and d.status in (0,1,3)
+			        and d.datum_dok between &g_trajanje_datum_od and &g_trajanje_datum_do
+				    AND d.broj_dok=sd.broj_dok and d.vrsta_dok=sd.vrsta_dok and d.godina=sd.godina
+			        and (sd.kolicina-sd.realizovano)>0
+			        and sd.proizvod in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+			     GROUP BY SD.PROIZVOD
+			) OCEK
+			,
+			(
+				select zo.SIFRA_FIRMA PRO_SIFRA_FIRMA, SUM(nvl(ocekivano,0)) OCEK_INV
+				  from INVEJ_ZALIHE_FIRME_OCEK@CITAJ_KON zo
+				 where zo.firma = (select iz01 from MAPIRANJE
+								    where modul='FIRMA' and ul01 = 'FIR')
+
+				  and zo.datum_dok between &g_trajanje_datum_od and &g_trajanje_datum_do
+			      and zo.SIFRA_FIRMA in
+										(
+											 select
+											        materijal_sifra
+												 from planiranje_view
+												where
+											           plan_tip_id         =  &c_tip_id
+											      and  plan_ciklus_id      =  &c_ciklus_id
+											      and  plan_period_id      =  &c_period_id
+											      and  plan_trajanje_id    =  &c_trajanje_id
+											      and  broj_dok   =  &c_broj_dok
+											      and  broj_dok1  =  &c_broj_dok1
+											      and  org_deo_id =  &c_org_deo_id
+												  and  varijanta_id     =  &c_varijanta_id
+												  and  status_stavka       = 1
+										          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+										                                     FROM PLANIRANJE_MAPIRANJE
+										                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+										                                    )
+										     group by materijal_sifra
+										)
+			     GROUP BY ZO.SIFRA_FIRMA
+			) OCEK_INV
+			,
+			(
+				 select
+				        /*+ INDEX(planiranje_stavka planir_s_pk) */
+				        materijal_tip OST_PLAN_materijal_tip
+				      , materijal_sifra OST_PLAN_materijal_sifra
+				      , sum(materijal_plan_potrebna_kol) OST_PLAN_materijal_kol_sum
+				      , materijal_jed_mere OST_PLAN_materijal_jed_mere
+			 		  , MATERIJAL_POSGR OST_PLAN_MATERIJAL_POSGR
+					  ---------------------------------------------------------------------------------------------------
+					 from planiranje_view
+					where
+				           plan_tip_id         =  &c_tip_id
+				      and  plan_ciklus_id      =  &c_ciklus_id
+				      and  plan_period_id      =  &c_period_id
+				      and  plan_trajanje_id    =  &c_trajanje_id
+				      and  broj_dok   !=  &c_broj_dok
+			--	      and  broj_dok1  =  &c_broj_dok1
+				      and  org_deo_id =  &c_org_deo_id
+					  and  varijanta_id     =  &c_varijanta_id
+				 	  --**********************************************************************************************************************************--
+				 	  --**********************************************************************************************************************************--
+
+					  and  status_stavka       = 1
+			          AND  MATERIJAL_TIP NOT IN (SELECT VREDNOST
+			                                     FROM PLANIRANJE_MAPIRANJE
+			                                     WHERE VRSTA IN ('GOT_PROIZVODI_TIPOVI','POLUPROIZVODI_TIPOVI')
+			                                    )
+				 group by
+				          materijal_tip
+				        , materijal_sifra
+				        , materijal_naziv
+				        , materijal_jed_mere
+						, MATERIJAL_POSGR
+				 order by
+						   MATERIJAL_POSGR
+			 		     , materijal_naziv
+			)OP
+
+			where plan.MATERIJAL_SIFRA=d.proizvod (+)
+			  and plan.MATERIJAL_SIFRA=kon.PRO_SIFRA_FIRMA (+)
+			  and plan.MATERIJAL_SIFRA=kontrola.kontrola_pro (+)
+			  and plan.MATERIJAL_SIFRA=kon1.PRO_SIFRA_FIRMA (+)
+			  and plan.MATERIJAL_SIFRA=kotrola_inv.kontrola_pro (+)
+			  and plan.MATERIJAL_SIFRA=inv_ocek.kontrola_pro (+)
+			  and plan.MATERIJAL_SIFRA=treb.proizvod (+)
+			  and plan.MATERIJAL_SIFRA=Pro_Pod.proizvod (+)
+			  and plan.MATERIJAL_SIFRA=OCEK.proizvod (+)
+			  and plan.MATERIJAL_SIFRA=OCEK_INV.PRO_SIFRA_FIRMA (+)
+              and PLAN.materijal_sifra = OP.OST_PLAN_materijal_sifra(+)
+
+			order by
+					  MATERIJAL_POSGR
+				    , materijal_naziv
+"REM WORKSPACETAB3",Query10,,29
+Select *
+from
+     ( SELECT * FROM MV_OCEK_KOLICINE_FIRME@citaj_kon
+       WHERE firma = (select iz01 from MAPIRANJE
+                      where modul='FIRMA' and ul01 = 'FIR')
+     ) MVO
+   ,(
+		Select M.INVEJ_SIFRA,M.JED_MERE_INVEJ,M.FIRMA,M.SIFRA_FIRMA,M.JED_MERE_FIRMA,M.MAGACIN,M.STATUS
+		     , DECODE(FIRMA,  5, 113
+		                   ,  4, 114
+		                   , 14, 115
+		                   ,  3, 116
+		                   , 11, 117
+		                   , 12, 118
+		                   , -9999999
+		             )						INV_MAG
+		From MV_NAB_OTPREMA_PRO_FIRME@CITAJ_KON M
+--		  , ( SELECT * FROM MV_OCEK_KOLICINE_FIRME@citaj_kon
+--		       WHERE firma = 1
+--		     ) MVI
+		WHERE M.firma = (select iz01 from MAPIRANJE
+		                 where modul='FIRMA' and ul01 = 'FIR')
+--          AND M.INVEJ_SIFRA = MVI.INVEJ_SIFRA AND M.SIFRA_FIRMA=MVI.SIFRA_FIRMA AND M.MAGACIN = MVI.ORG_DEO
+--		Order by firma
+    ) MVOT
+
+Where MVO.ORG_DEO  = MVOT.MAGACIN     (+)
+  AND MVO.PROIZVOD = MVOT.SIFRA_FIRMA (+)
+
+"REM WORKSPACETAB4",Query13,,19
+SELECT M.*, MVOT.*
+FROM MV_OCEK_KOLICINE_FIRME@citaj_kon M
+   , (
+		Select M.INVEJ_SIFRA,M.JED_MERE_INVEJ,M.FIRMA,M.SIFRA_FIRMA,M.JED_MERE_FIRMA,M.MAGACIN,M.STATUS
+		     , DECODE(FIRMA,  5, 113
+		                   ,  4, 114
+		                   , 14, 115
+		                   ,  3, 116
+		                   , 11, 117
+		                   , 12, 118
+		                   , -9999999
+		             )						INV_MAG
+		From MV_NAB_OTPREMA_PRO_FIRME@CITAJ_KON M
+     ) MVOT
+WHERE M.firma = 1
+  AND M.ORG_DEO  = MVOT.INV_MAG (+)
+  AND M.PROIZVOD = MVOT.INVEJ_SIFRA (+)
+oRDER BY M.ORG_DEO, M.PROIZVOD
+
+"REM WORKSPACETAB5",DOKUMENT.sql,,168
+--27558 -- 20-1410
+--27675 -- 20-1414
+
+
+--96.05
+--10067 mag 91 umesto 6023 treba 9145
+
+--11787
+-- na 28
+SELECT   d.rowid,
+--(cena-cena1)*kolicina vred,
+
+--d.datum_dok + d.valuta_placanja,
+--(select NABAVNA_SIFRA
+--FROM KATALOG_TRANZIT
+--where dobavljac = '342' and proizvod = d.proizvod
+--),
+D.*
+
+--, round(round(nvl(d.Kolicina * d.Cena*(1-d.Rabat/100) +
+--                  round(nvl(Z_TROSKOVI,0),2)
+--                 ,0)
+--             ,2) / kolicina * 1.02
+--       ,2)
+
+FROM
+
+-- dokument  d
+-- VEZNI_DOK d
+--,
+komentar d
+--FROM
+--stavka_Dok d --,
+--zavisni_troskovi d
+--ZAVISNI_TROSKOVI_STAVKE d
+--prosecni_cenovnik d
+
+
+--dokument@SUNCE  d
+--VEZNI_DOK@rubin d
+
+--komentar d
+--FROM
+--stavka_Dok@SUNCE d --,
+--zavisni_troskovi d
+--prosecni_cenovnik d
+WHERE d.godina = 2012
+--and d.VRSTA_DOK in (10,11) --and d.status = 4
+--and d.proizvod=10989
+and (
+--         ( d.VRSTA_DOK = 1 and d.broj_dok in ('55')) --1351--
+--      or
+
+------------- prijemnica
+--          ( d.VRSTA_DOK =2 And d.BROJ_DOK in('195')) --1351--
+--      or
+--          ( d.VRSTA_DOK = 3 And d.BROJ_DOK in('1965')) --1351
+----          ----
+--      or
+--          ( d.VRSTA_DOK = 4 And d.BROJ_DOK in('657')) --1351
+--      or
+--          ( d.VRSTA_DOK = 5 And d.BROJ_DOK in('109')) --1351
+--      or
+--          ( d.VRSTA_DOK = 5 And d.BROJ_DOK in('657')) --1351
+--------------------------------------------------------------------------
+          ----
+
+--          ( d.VRSTA_DOK = 85 And d.BROJ_DOK in('6459')) --1351--
+--
+--      or
+--          ( d.VRSTA_DOK = 27 And d.BROJ_DOK in('25')) --1351--
+
+--      or
+--          ( d.VRSTA_DOK = 9 And d.BROJ_DOK in('222')) --1351--
+----
+----
+--      or
+          ( d.VRSTA_DOK = 10 And d.BROJ_DOK in('606')) --1351--
+      or
+          ( d.VRSTA_DOK in(11) And d.BROJ_DOK in('655')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(12) And d.BROJ_DOK in('1')) --1351--
+----      or
+----          ( d.VRSTA_DOK in(13) And d.BROJ_DOK in('347')) --1351--
+----
+--      or
+--          ( d.VRSTA_DOK in(61) And d.BROJ_DOK in('1515')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(27) And d.BROJ_DOK in('35')) --1351--
+
+--or
+--          ( d.VRSTA_DOK in(70) And d.BROJ_DOK in('19867')) --1351--
+--or
+--          ( d.VRSTA_DOK in(71) And d.BROJ_DOK in('19867')) --1351--
+--
+--or
+--          ( d.VRSTA_DOK in(73) And d.BROJ_DOK in('49')) --1351--
+--or
+--          ( d.VRSTA_DOK in(74) And d.BROJ_DOK in('82')) --1351--
+--
+--      or
+--          ( d.VRSTA_DOK in(80) And d.BROJ_DOK in('64')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(90) And d.BROJ_DOK in('1270')) --1351--
+
+--
+    )
+--and proizvod in (4210,4211,4212,4213,3190)
+--  and org_deo = 11
+
+--  and d.org_deo in (312)
+--  and datum_dok = to_date('04.09.2009','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----            (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--              (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in(20114)
+--order by stavka
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+
+--order by to_number(proizvod)
+
+
+--and REALIZOVANO <> kolicina
+--order by cena
+--and d.cena<>d.cena1*d.faktor
+"REM WORKSPACETAB6",Query16,,3
+Select
+ Pkurs.KursNaDan( 'EUR',sysdate, 'S') kurs
+from dual
+"REM WORKSPACETAB7",Query17,,19
+                Select sd.stavka
+	             , sd.cena
+                 , k.srednji                  EUR_S_DOK
+	             , k1.srednji                 EUR_S_DAT
+--	             , round(sd.cena/k.srednji,4) CENA_EUR_DOK
+	             , round(sd.cena/k.srednji,Decode(UPPER(substr(:Global.ConnectString,1,5)), 'ALBUS', 2
+                                                                                              , 'RUBIN', 2 
+                                                                                              , 4
+                                                     )
+                            ) CENA_EUR_DOK
+	        From dokument d, stavka_dok sd, kurs k, kurs k1
+	        Where sd.godina = d.godina and sd.vrsta_dok = d.vrsta_dok and sd.broj_dok = d.broj_dok
+ 	          and k.datum  = d.datum_dok and k.Val_ID = 'EUR'
+--	          and k1.datum = :BUTTON_PALETTE.DATUM_AZURIRANJA_CENE_EUR and k1.Val_ID = 'EUR'
+ 	          -----------------------------	
+	          -- ostali uslovi
+	          and d.godina    = 2012
+	          and d.vrsta_dok = '10'
+	          and d.broj_dok  = 606;
+"REM WORKSPACETAB8",Query18,,14
+Select SD.ROWID, d.godina, d.vrsta_Dok, d.broj_dok, d.datum_dok,STAVKA,PROIZVOD,LOT_SERIJA,ROK,KOLICINA,JED_MERE,CENA,VALUTA,realizovano, sd.cena1
+, kolicina - realizovano ocek
+	        From stavka_dok sd, dokument d
+	        Where sd.godina = d.godina and sd.vrsta_dok = d.vrsta_dok and sd.broj_dok = d.broj_dok
+ 	          -----------------------------
+	          -- ostali uslovi
+	          and d.godina    != 0
+	          and d.vrsta_dok = '2'
+	          and d.status in (0,1,3)
+	          and d.broj_dok  != '-999999'
+	          and sd.proizvod = '250030'
+
+
+
+"REM WORKSPACETAB9",Query21,,25
+--Select CENA
+--,k.SREDNJI
+--, ROUND(CENA / k.SREDNJI,2)
+--From dokument d, stavka_dok sd, kurs k--, kurs k1
+--Where k.datum  = to_date('23.03.2012','dd.mm.yyyy') and k.Val_ID = 'EUR'
+
+SELECT ST, C.CENA, C.VAL, K.SREDNJI
+, ROUND( K.SREDNJI/C.CENA,2) CENA_RSD
+FROM
+(
+	SELECT 1 ST, .58 CENA, 'EUR' VAL FROM DUAL
+	UNION
+	SELECT 2 ST, 1.01 CENA, 'EUR' VAL FROM DUAL
+	UNION
+	SELECT 3 ST, .065 CENA, 'EUR' VAL FROM DUAL
+	UNION
+	SELECT 4 ST, .58 CENA, 'EUR' VAL FROM DUAL
+	UNION
+	SELECT 5 ST, 13.5 CENA, 'EUR' VAL FROM DUAL
+	UNION
+	SELECT 6ST, .281 CENA, 'EUR' VAL FROM DUAL
+) C
+, kurs k
+Where k.datum  = to_date('23.03.2012','dd.mm.yyyy') and k.Val_ID = 'EUR'
+ORDER BY ST
+"REM WORKSPACETAB10",Query19,,8
+Select *
+
+	        From komentar d
+	        Where
+	           d.godina    = 2012
+	          and d.vrsta_dok = '10'
+	          and d.broj_dok  = 606;
+
+"REM WORKSPACETAB11",Query14,,10
+Select M.INVEJ_SIFRA,M.JED_MERE_INVEJ,M.FIRMA,M.SIFRA_FIRMA,M.JED_MERE_FIRMA,M.MAGACIN,M.STATUS
+     , DECODE(FIRMA,  5, 113
+                   ,  4, 114
+                   , 14, 115
+                   ,  3, 116
+                   , 11, 117
+                   , 12, 118
+                   , -9999999
+             )						INV_MAG
+From MV_NAB_OTPREMA_PRO_FIRME@CITAJ_KON M
+"REM WORKSPACETAB12",Query12,,2
+SELECT * FROM MV_OCEK_KOLICINE_FIRME@citaj_kon
+ORDER BY FIRMA
+"REM WORKSPACETAB13",Query11,,13
+Select INVEJ_SIFRA,JED_MERE_INVEJ,FIRMA,SIFRA_FIRMA,JED_MERE_FIRMA,MAGACIN,STATUS
+     , DECODE(FIRMA,  5, 113
+                   ,  4, 114
+                   , 14, 115
+                   ,  3, 116
+                   , 11, 117
+                   , 12, 118
+                   , -9999999
+             )						INV_MAG
+From MV_NAB_OTPREMA_PRO_FIRME@CITAJ_KON
+WHERE firma = (select iz01 from MAPIRANJE
+               where modul='FIRMA' and ul01 = 'FIR')
+Order by firma
+"REM WORKSPACETAB14",Query4,,2
+select iz01 from MAPIRANJE
+where modul='FIRMA' and ul01 = 'FIR'
+"REM WORKSPACETAB15",Query5,,32
+
+select *
+from MV_ZALIHE_INV_FAB_NAB_DAT@CITAJ_KON z
+--	,(
+--		select d.org_deo,st.proizvod,sum(st.kolicina-st.realizovano) ocekivano
+--		  from dokument d, stavka_dok st
+--		 where d.godina = st.godina
+--		   and d.vrsta_dok = st.vrsta_dok
+--		   and d.broj_dok  = st.broj_dok
+--		   and d.vrsta_dok = '2'
+--		   and d.status in (0,1,3)
+--		   and st.kolicina  <> st.realizovano
+--		group by d.org_deo,st.proizvod
+--	) o
+where nvl(INV_STANJE,'0') >= '0'
+  and z.INV_FIR = (Select iz01 from MAPIRANJE
+	 		       Where modul='FIRMA' and ul01 = 'FIR')
+  and inv_godina = (select max(inv_godina)
+                    from MV_ZALIHE_INV_FAB_NAB_DAT@CITAJ_KON z1
+                    where z1.fab_mag=z.fab_mag and z1.fab_pro=z.fab_pro
+                    )
+  and inv_dat_ps = (select max(inv_dat_ps)
+                    from MV_ZALIHE_INV_FAB_NAB_DAT@CITAJ_KON z1
+                    where z1.fab_mag=z.fab_mag and z1.fab_pro=z.fab_pro
+                    )
+  and inv_datum_dok = (select max(inv_datum_dok)
+                    from MV_ZALIHE_INV_FAB_NAB_DAT@CITAJ_KON z1
+                    where z1.fab_mag=z.fab_mag and z1.fab_pro=z.fab_pro
+                    )
+--  and  z.fab_mag = o.org_deo                   (+)
+--  and  z.fab_pro = o.proizvod                  (+)
+Order by FAB_PRO
+"REM WORKSPACETAB16",Query8,,12
+		select d.status, d.org_deo,st.proizvod,d.godina,d.vrsta_dok, d.broj_dok,d.datum_dok, d.datum_unosa, d.user_id
+		     , st.kolicina naruceno, st.realizovano stiglo
+		     , st.kolicina-st.realizovano ocekivano
+
+		  from dokument d, stavka_dok st
+		 where d.godina = st.godina
+		   and d.vrsta_dok = st.vrsta_dok
+		   and d.broj_dok  = st.broj_dok
+		   and d.vrsta_dok = '2'
+		   and d.status in (0,1,3)
+		   and st.kolicina  <> st.realizovano
+		Order by st.proizvod, d.datum_dok,d.datum_unosa
+"REM WORKSPACETAB17",Query9,,3
+Select * from ocekivana_kol_test
+--, MV_OCEK_KOLICINE_FIRME@citaj_kon
+--where firma = 5
+"REM WORKSPACETAB18",Query6,,5
+SELECT Z.*, inv.*
+FROM ZALIHE Z, MV_ZALIHE_INV_FAB_NAB_DAT@CITAJ_KON inv
+where z.org_deo = inv.fab_mag (+)
+  and z.proizvod = inv.fab_pro (+)
+ORDER BY Z.ORG_DEO
+"REM WORKSPACETAB19",Query22,,3
+Select ck.FIRMA,ck.ORG_DEO,ck.PROIZVOD,ck.OCEKIVANO,ck.NAB_FIR,ck.NAB_MAG,ck.NAB_PRO,ck.NAB_OCEK
+from MV_OCEK_KOLICINE_FIRME@citaj_kon ck
+where firma = (select iz01 from MAPIRANJE where modul='FIRMA' and ul01 = 'FIR')
+"REM WORKSPACETAB20",Query23,,10
+select ot.*
+from OCEKIVANA_KOL_TEST ot
+--, (
+--
+--   Select * from MV_OCEK_KOLICINE_FIRME@citaj_kon
+--   where firma = (select iz01 from MAPIRANJE where modul='FIRMA' and ul01 = 'FIR')
+--  ) ck
+--where ot.org_deo=ck.org_deo   (+)
+--  and ot.proizvod=ck.proizvod (+)
+order by org_deo, to_number(proizvod)

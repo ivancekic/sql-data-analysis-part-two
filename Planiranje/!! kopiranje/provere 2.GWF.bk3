@@ -1,0 +1,78 @@
+"REM WORKSPACETAB0",Query1,,2
+
+select * from PLANIRANJE_PERIOD
+"REM WORKSPACETAB1",Query2,,12
+         select pz.*
+           from planiranje_zaglavlje pz
+              , planiranje_status ps
+	      where ps.status_id=pz.status_id
+	        and ps.plan_tip_id=pz.plan_tip_id
+
+            and pz.plan_tip_id         = 2
+            and pz.plan_ciklus_id      = 2015
+            and pz.plan_period_id      = 3
+--            and pz.plan_trajanje_id    = g_trajanje_id
+--            and pz.broj_dok            = g_broj_dok;
+and broj_dok > 0
+"REM WORKSPACETAB2",Query3,,1
+select * from PLANIRANJE_varijanta
+"REM WORKSPACETAB3",Query4,,3
+select * from planiranje_mapiranje
+WHERE VREDNOST='PROMIST'
+order by vrsta
+"REM WORKSPACETAB4",Query22,,1
+SELECT * FROM SEKVENCA WHERE NAZIV = UPPER('Planiranje_kopi_id')
+"REM WORKSPACETAB5",Query15,,1
+SELECT * FROM FIRME
+"REM WORKSPACETAB6",Query13,,0
+"REM WORKSPACETAB7",Query5,,6
+select varijanta_id,opis from PLANIRANJE_varijanta p
+where plan_tip_id= 2
+and plan_ciklus_id= 2015
+and plan_period_id = 3
+and plan_trajanje_id=1
+and broj_dok = 2
+"REM WORKSPACETAB8",Query23,,7
+C2 = PLAN_TIP_ID
+C3 = PLAN_CIKLUS_ID
+C4 = PLAN_PERIOD_ID 
+C5 = PLAN_PERIOD_ID NAZ
+C6 = PLAN_TRAJANJE_ID
+C7 = BROJ_DOK
+C8 = VARIJANTA
+"REM WORKSPACETAB9",Query21,,1
+select * from PLANIRANJE_KOPI_U
+"REM WORKSPACETAB10",Query39,,2
+select from PLANIRANJE_KOPI_U
+
+"REM WORKSPACETAB11",Query28,,1
+select * from PLANIRANJE_KOPI_IZ
+"REM WORKSPACETAB12",Query26,,2
+select * from PLANIRANJE_KOPI_U u, PLANIRANJE_KOPI_iz i
+where i.id=u.id
+"REM WORKSPACETAB13",Query27,,5
+select UPPER(PMapiranje.MOJE_PLAN_MAPIR (   :Button_palette.C_NAZIV_KOPIRANJA_MAP 
+                                            , :KOPIRANJE_PLANA.PLAN_TIP_ID
+                                            , :Button_palette.cKorisnik)
+                                          ) 
+from dual                                          
+"REM WORKSPACETAB14",Query40,,9
+select *
+from PLANIRANJE_ZAGLAVLJE
+
+where PLAN_TIP_ID=2
+  and PLAN_CIKLUS_ID=2015
+  and PLAN_PERIOD_ID=3
+  and PLAN_TRAJANJE_ID=1
+  and BROJ_DOK=1
+
+"REM WORKSPACETAB15",Query41,,9
+   :NOVI_PLAN.STATUS_ZAGLAVLJE := Moje_Prov_pl_status ( :Novi_plan.PLAN_TIP_ID,
+                                                             :Novi_plan.PLAN_CIKLUS_ID,
+                                                             :Novi_plan.PLAN_PERIOD_ID,
+                                                             :Novi_plan.PLAN_TRAJANJE_ID,
+                                                             :Novi_plan.BROJ_DOK
+                                                           );
+                                                           
+                                                           
+MOJE_PLAN_FIRMA_poziv                                                           

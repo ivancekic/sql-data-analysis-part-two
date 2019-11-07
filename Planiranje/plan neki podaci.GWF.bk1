@@ -1,0 +1,23 @@
+"REM WORKSPACETAB0",Query1,,6
+select T.ROWID, T.*, dpd.polje9
+from PROIZVOD_PODACI t, deja_pomocna_tab dpd
+where t.proizvod = dpd.polje1 (+)
+
+and polje9 is not null
+and nvl(kol_signalna,-1) <> nvl(polje9,-1)
+"REM WORKSPACETAB1",Query5,,4
+select rowid, polje1, polje2, polje3, polje4, polje5, polje6, polje7, polje8, polje9, polje10, polje11
+     , polje79, polje80
+From DEJA_POMOCNA_TAB dpd
+--order
+"REM WORKSPACETAB2",Query3,,1
+Select * from planiranje_proizvod_korisnik
+"REM WORKSPACETAB3",Query4,,6
+SELECT 'MONUS','TIP_PROIZVODA',TIP_PROIZVODA
+FROM PROIZVOD
+--WHERE  TIP_PROIZVODA <> 2
+GROUP BY TIP_PROIZVODA
+
+
+"REM WORKSPACETAB4",Query2,,1
+SELECT * FROM ZALIHE

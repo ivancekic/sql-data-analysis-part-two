@@ -1,0 +1,477 @@
+"REM WORKSPACETAB0",Query1,,83
+select D.ROWID, --pjedmere.naziv(sd.proizvod) jm,
+--pproizvod.naziv(sd.proizvod) ,
+--SD.BROJ_DOK,
+--D.org_deo, d.poslovnica,  d.vrsta_izjave,
+--sd.proizvod, SD.porez
+--,sd.cena,sd.cena1
+--,Pporez.ProcenatPoreza(d.Poslovnica,sd.Proizvod,d.Datum_dok,d.Vrsta_izjave) treba_por
+--,sd.stavka
+--d.rowid, d.vrsta_izjave,d.org_deo, d.broj_dok1, sd.*
+--D.ROWID,-- D.*,
+--sd.jed_mere, p.jed_mere,
+--d.status, d.datum_dok, D.ORG_DEO, D.BROJ_DOK1,
+d.*,
+SD.*
+--D.DATUM_dOK, SD.VRSTA_dOK, SD.BROJ_DOK, SD.PROIZVOD, SD.KOLICINA,SD.CENA,SD.CENA1
+--, sd.cena * (1-sd.rabat/100)
+----,Obracunaj_JUS(sd.proizvod, sd.neto_kg, sd.proc_vlage, sd.proc_necistoce,nvl(sd.htl,0))
+----, (sd.kolicina * 2) z_t_osn, round((sd.kolicina * 2 * 1.18),2) z_t_uk
+--, OdgovarajucaCena(D.Org_deo , Sd.proizvod , d.datum_dok, sd.faktor, sd.valuta,0) odgov
+----, PProdajniCenovnikGrKup.Cena ('GKNEU', sd.proizvod , d.Datum_Dok, 'YUD' , sd.Faktor  ) neu
+--, PProdajniCenovnik.Cena (sd.proizvod , d.Datum_Dok, 'YUD' , sd.Faktor  ) PROD
+--, Pporez.ProcenatPoreza(d.Poslovnica,sd.Proizvod,d.Datum_dok,d.Vrsta_izjave) treba_por
+--,Kolicina * Faktor * 100 / Kolicina_Kontrolna jacina
+--d.tip_dok,pproizvod.naziv(sd.proizvod),--sd.*
+--sd.proizvod , pproizvod.naziv(sd.proizvod),sum (sd.kolicina * sd.faktor * sd.k_robe)
+--,d.status,sd.kolicina, sd.realizovano
+--from stavka_dok sd, dokument d , PROIZVOD P , GRUPA_PR  GPR
+from dokument d, stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina (+) and d.vrsta_dok = sd.vrsta_dok (+) and d.broj_dok = sd.broj_dok  (+)
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2010' = d.godina
+--  AND TIP_DOK = 11
+AND D.ORG_DEO = 64
+--and sd.faktor <> 1
+and proizvod = '206320'
+--and (
+--          ( d.VRSTA_DOK = 3 And d.BROJ_DOK in('917')) --1351--
+--      or
+--          ( d.VRSTA_DOK = 2 And d.BROJ_DOK in('156')) --1351--
+--
+--    )
+--and proizvod in (select proizvod from stavka_dok
+--where godina = 2010
+-- and vrsta_dok = 3
+-- and broj_dok = 21028)
+
+--  AND NVL ( SD.CENA , 0 ) <>  NVL ( SD.CENA1 , 0 )
+--
+--  and d.status >= 1
+--  and ( nvl(sd.cena1,0) <= 0 or nvl(sd.cena,0) <= 0 )
+--  and d.vrsta_dok  IN ( 1,26,45,46,
+--                        8,27,28,32 )
+--  and tip_dok = 23
+--  and sd.stavka = 1
+--  and d.broj_dok in (10)
+-- and d.broj_dok1 in (1595)
+--   AND SD.CENA <> 18
+-- PProdajniCenovnik.Cena( SD.Proizvod,D.Datum_Dok,SD.Valuta,SD.Faktor)
+  and d.datum_dok = to_date('01.01.2010','dd.mm.yyyy')
+--  and sd.proizvod = 18379
+--AND D.VRSTA_DOK = 3
+and d.status > 0
+and k_robe <> 0
+--and nvl(sd.cena1,0) = 0
+--  and proizvod in ('10174','10175')
+--order by --to_number(sd.proizvod),
+----d.datum_dok ,
+--to_number(sd.broj_dok)
+--to_number(sd.proizvod)--,sd.stavka -- ,
+--
+----, d.broj_dok , stavka
+--ORDER BY TO_NUMBER(PROIZVOD),
+--         D.DATUM_UNOSA,
+--         TO_NUMBER(d.vrsta_dok),
+--         TO_NUMBER(d.BROJ_dok)
+--         --datum_dok--, stavka--
+--
+--and sd.stavka = 98
+order by d.datum_dok,d.datum_unosa;
+"REM WORKSPACETAB1",Query8,,14
+select sum(sd.kolicina*sd.k_robe*sd.faktor) 
+from dokument d, stavka_dok sd
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  -----------------------------
+  -- ostali uslovi
+  and d.datum_dok between dat_ps and 
+  and d.godina = god
+  and d.org_Deo = mag
+  and sd.proizvod = pro
+  and d.vrsta_dok not in (2,9,10)
+  and d.status > 0
+
+"REM WORKSPACETAB2","Nadji stanja Ver1.",,36
+Select GOD,MES,ORG_DEO
+From
+(
+	Select GOD,MES, org_Deo
+	from
+	(
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '01' mes from dual) m
+	    union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '02' mes from dual) m
+		union
+	    SELECT min(d.godina) god, m.mes From dokument d, (Select '03' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '04' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '05' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '06' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '07' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '08' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '09' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '10' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '11' mes from dual) m
+		union
+		SELECT min(d.godina) god, m.mes From dokument d, (Select '12' mes from dual) m
+	) godine
+	, (Select Godina, Org_Deo From Dokument d Where d.status > 0 and d.vrsta_dok not in (2,9,10) Group by Godina, Org_Deo) magacini
+
+	where godine.god = magacini.godina
+)
+
+Order by god, mes, org_deo
+"REM WORKSPACETAB3","Nadji stanje Ver 2.",,37
+Select GOD,MAG,DAT_PS,UK_DOK,MES
+
+From
+(
+	Select GOD, mag
+	     , (SELECT NVL(MAX(DATUM_DOK),TO_DATE('01.01.2006','DD.MM.YYYY')) FROM DOKUMENT WHERE VRSTA_DOK = 21 And status > 0 AND GODINA = 2006 and org_Deo = mag ) DAT_PS
+	     , (SELECT count(*) FROM DOKUMENT WHERE VRSTA_DOK not in (2,9,10) And status > 0 And to_char(datum_Dok,'mm') = mes AND GODINA = god and org_deo = mag ) uk_dok
+	     , MES
+	from
+	(
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '01' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+	    union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '02' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+	    SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '03' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '04' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '05' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '06' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '07' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '08' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '09' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '10' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '11' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		union
+		SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '12' mes from dual) m where d.godina = 2006 and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+	) godine
+)
+where uk_dok > 0
+order by mag, mes
+"REM WORKSPACETAB4","Nadji stanje Ver 3.",,65
+--CREATE TABLE ZAL_GOD_MAG_DAT
+--AS
+select GOD,MAG,DAT_PS,UK_DOK,MES,PRO,NA_DAT,STANJE
+from
+(
+	Select GOD,MAG,DAT_PS,UK_DOK,MES, pro, to_date('01.'||mes||'.'||to_char(god)) na_dat
+		,nvl(( Select sum(sd.kolicina*sd.k_robe*sd.faktor) From dokument d, stavka_dok sd
+		 	   Where d.godina = god and d.vrsta_dok not in (2,9,10) and d.org_Deo = mag and d.status > 0
+		         and d.datum_dok between dat_ps and to_date('01.'||mes||'.'||to_char(god))
+	             and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	             and sd.proizvod = pro
+		     ),0) stanje
+
+	From
+	(
+		Select GOD, mag
+		     , (SELECT NVL(MAX(DATUM_DOK),TO_DATE('01.01.'||to_char(&god),'DD.MM.YYYY')) FROM DOKUMENT WHERE VRSTA_DOK = 21 And status > 0 AND GODINA = &god and org_Deo = mag ) DAT_PS
+		     , (SELECT count(*) FROM DOKUMENT WHERE VRSTA_DOK not in (2,9,10) And status > 0 And to_char(datum_Dok,'mm') = mes AND GODINA = god and org_deo = mag ) uk_dok
+		     , MES
+		from
+		(
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '01' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		    union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '02' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+		    SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '03' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '04' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '05' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '06' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '07' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '08' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '09' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '10' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '11' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+			union
+			SELECT min(d.godina) god, m.mes, d.org_deo mag From dokument d, (Select '12' mes from dual) m where d.godina = &god and d.status > 0 and d.vrsta_dok not in (2,9,10)  and d.org_Deo not in (select magacin from partner_magacin_flag)Group by d.org_Deo
+		) godine
+	) mag
+	,
+	(
+	select d.org_Deo, sd.proizvod pro
+	from dokument d, stavka_dok sd
+	Where
+	  -- veza tabela
+	      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	  -----------------------------
+	  -- ostali uslovi
+	  and d.godina = &god
+	  and d.vrsta_dok not in (2,9,10)
+	  and d.status > 0
+	Group by d.org_Deo, sd.proizvod
+	) pro
+	where uk_dok > 0
+	  and mag.mag = pro.org_Deo
+)
+--where stanje < 0
+order by mag, mes, to_number(pro)
+"REM WORKSPACETAB5","STANJA RAZLIKE",,27
+SELECT PRO, PPROIZVOD.NAZIV(PRO) PRO_NAZ
+     , MAG,PORGANIZACIONIDEO.NAZIV(MAG) MAG_NAZ
+--     , GOD
+     , NA_DAT,STANJE,STANJE_NA_DATUM STANJE_LOSE, PPROIZVOD.JEDMERE(PRO) JM
+FROM
+(
+SELECT Z.GOD,MAG,Z.PRO,NA_DAT,Z.STANJE
+     , Z1.STANJE_NA_DATUM
+FROM ZAL_GOD_MAG_DAT Z, ZALIHE_GOD_MAG_DATUMI Z1
+WHERE Z.GOD       = Z1.GODINA
+  AND Z.MAG       = Z1.ORG_DEO
+  AND Z.NA_DAT    = Z1.DATUM
+  AND Z.PRO       = Z1.PROIZVOD
+)
+WHERE NVL(STANJE,0) <> NVL(STANJE_NA_DATUM,0)
+--AND MAG
+--    IN(
+--       Select pom.MAGACIN_ID
+--       From PLANIRANJE_VIEW plv, PLANIRANJE_ORG_DEO_MAGACIN pom
+--       Where PLAN_TIP_ID      = 3
+--         and PLAN_CIKLUS_ID   = 2010
+--         And PLAN_PERIOD_ID   = 3
+--         and PLAN_TRAJANJE_ID = 11
+--       GROUP BY POM.MAGACIN_ID
+--      )
+--ORDER BY TO_NUMBER(PRO),MAG, NA_DAT DESC
+ORDER BY TO_NUMBER(PRO), NA_DAT DESC
+"REM WORKSPACETAB6","!Pravi synonym, GRANTOVANJE.sql",,32
+Create public synonym ZAL_GOD_MAG_DAT FOR monus.ZAL_GOD_MAG_DAT ;
+/
+-- ako je paket ili funkcija
+GRANT EXECUTE ON monus.ZAL_GOD_MAG_DAT TO EXE
+/
+
+----------------------------------------------------
+----------------------------------------------------
+-- FULL_ACCESS      -- PL / SQL
+-- RESTRICT_ACCESS  -- FORMS
+
+-- ako je ZAL_GOD_MAG_DAT, view
+GRANT DELETE ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT INSERT ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT SELECT ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT UPDATE ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT ALTER ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT ON COMMIT REFRESH ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT QUERY REWRITE ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT DEBUG ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+GRANT FLASHBACK ON monus.ZAL_GOD_MAG_DAT TO FULL_ACCESS
+/
+----
+GRANT SELECT ON monus.ZAL_GOD_MAG_DAT TO RESTRICT_ACCESS
+"REM WORKSPACETAB7",Query17,,3
+Select * from planski_cenovnik
+where proizvod = 4503
+order by datum desc
+"REM WORKSPACETAB8",DOKUMENT.sql,,73
+SELECT   d.rowid,
+--d.datum_dok + d.valuta_placanja,
+D.*
+FROM
+dokument  d
+--VEZNI_DOK d
+--,
+--komentar d
+--FROM
+--stavka_Dok d --,
+--vezni_dok d
+--update dokument
+--set datum_dok = to_date('03.09.2007','dd.mm.yyyy')
+WHERE d.godina = 2010
+and (
+          ( d.VRSTA_DOK = 11) --And d.BROJ_DOK in('2910')) --1351--
+--      or
+--          ( d.VRSTA_DOK = 74 And d.BROJ_DOK in('2910')) --1351--
+
+    )
+--and proizvod = 18379
+--  and org_deo = 101
+
+  and d.org_deo in (45)
+  and datum_dok = to_date('08.12.2010','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----                   (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--         (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in(7627,7581)
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+"REM WORKSPACETAB9",Query19,,4
+Select * from prodajni_cenovnik
+where proizvod in (6680,6681,6682,6683,6684,6685)
+and datum = '08.12.2010 00:00:00'
+order by datum desc
+"REM WORKSPACETAB10",Query12,,15
+Select
+z.*
+		,
+		nvl(( Select sum(sd.kolicina*sd.k_robe*sd.faktor) From dokument d, stavka_dok sd
+		 	   Where d.godina = god and d.vrsta_dok not in (2,9,10) and d.org_Deo = z.mag and d.status > 0
+		         and d.datum_dok between dat_ps and to_date('15.02.2010')
+	             and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	             and sd.proizvod = pro
+		     ),0) stanje
+
+from ZAL_GOD_MAG_DAT z
+where mag = 102
+  and pro = 1432
+and mes = '02'
+--order by
+"REM WORKSPACETAB11",Query13,,15
+Select
+--z.*
+--	,
+		nvl(( Select sum(sd.kolicina*sd.k_robe*sd.faktor) From dokument d, stavka_dok sd
+		 	   Where d.godina = god and d.vrsta_dok not in (2,9,10) and d.org_Deo = z.mag and d.status > 0
+		         and d.datum_dok between dat_ps and to_date('20.11.2010')
+	             and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	             and sd.proizvod = pro
+		     ),0) stanje
+
+from ZAL_GOD_MAG_DAT z
+where mag = 102
+  and pro = 1432
+  and mes = '11'
+--order by
+"REM WORKSPACETAB12",Query15,,26
+select STANJE,MEDJU_STANJE
+, STANJE+MEDJU_STANJE stanje_na
+from
+(
+	Select
+	z.stanje
+		,
+			nvl(( Select sum(sd.kolicina*sd.k_robe*sd.faktor) From dokument d, stavka_dok sd
+			 	   Where d.godina = god and d.vrsta_dok not in (2,9,10) and d.org_Deo = z.mag and d.status > 0
+			         and d.datum_dok between(select max(na_dat)
+	                                         from ZAL_GOD_MAG_DAT z1
+	                                         where z1.pro=1432
+	                                           and z1.mag=102
+			                                   and z1.god=2010
+	                                           and z1.na_dat <= to_date('20.11.2010')
+			                                  )
+			                                  and to_date('20.11.2010')
+		             and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+		             and sd.proizvod = pro
+			     ),0) medju_stanje
+
+	from ZAL_GOD_MAG_DAT z
+	where mag = 102
+	  and pro = 1432
+	and mes = '11'
+)
+"REM WORKSPACETAB13",Query16,,17
+--SELECT *
+--FROM
+			(
+			  Select NVL(sum(sd.kolicina*sd.k_robe*sd.faktor),0) STANJE From dokument d, stavka_dok sd
+			 	   Where d.godina = 2010 and d.vrsta_dok not in (2,9,10) and d.org_Deo = 102 and d.status > 0
+			         and d.datum_dok between NVl((select max(DATUM_dOK)
+	                                              from DOKUMENT D1
+	                                              where d1.vrsta_dok not in (2,9,10) AND D1.VRSTA_dOK = 21
+	                                                AND D1.STATUS > 0
+	                                                AND D1.ORG_dEO=102
+			                                        and D1.godINA=2010
+	                                                and D1.DATUM_dOK <= to_date('20.11.2010')
+			                                     ),TO_DATE('01.01.2010'))
+			                                  and to_date('20.11.2010')
+		             and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+		             and sd.proizvod = 1432
+)
+"REM WORKSPACETAB14",Query14,,7
+		(select max(na_dat)
+		 from ZAL_GOD_MAG_DAT z1
+		 where z1.pro=1432
+		   and z1.mag=102
+				                                    and z1.god=2010
+		                                            and z1.na_dat <= to_date('20.11.2010')
+				                                  )
+"REM WORKSPACETAB15",Query11,,7
+Select pom.MAGACIN_ID
+From PLANIRANJE_VIEW plv, PLANIRANJE_ORG_DEO_MAGACIN pom
+Where PLAN_TIP_ID      = 3
+and PLAN_CIKLUS_ID   = 2010
+and PLAN_PERIOD_ID   = 3
+and PLAN_TRAJANJE_ID = 11
+GROUP BY POM.MAGACIN_ID

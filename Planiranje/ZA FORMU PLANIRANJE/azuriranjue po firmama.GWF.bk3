@@ -1,0 +1,522 @@
+"REM WORKSPACETAB0","vidi zag",,75
+select 'rub' firma, ps.*
+From planiranje_ZAGLAVLJE@RUBIN ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'pek' firma, ps.*
+From planiranje_ZAGLAVLJE@pekara ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'rat' firma, ps.*
+From planiranje_ZAGLAVLJE@ratar ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'alb' firma, ps.*
+From planiranje_ZAGLAVLJE@albus ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'vit' firma, ps.*
+From planiranje_ZAGLAVLJE@vital ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'med' firma, ps.*
+From planiranje_ZAGLAVLJE@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'sun' firma, ps.*
+From planiranje_ZAGLAVLJE@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+"REM WORKSPACETAB1",Query6,,104
+	Select
+	  	   ps.PROIZVOD, p.jed_mere, p.planska_JM, p.faktor_planske
+	     , k.dobavljac, k.nabavna_sifra
+
+	     , ps.BROJ_SASTAVNICE
+	     , SUM(nvl(KOLICINA,0)) KOLICINA_SKL_JM
+	     , case
+	            when faktor_planske <= 1 Then
+	                 SUM(nvl(KOLICINA,0)) * faktor_planske
+	            when faktor_planske > 1 Then
+	                 SUM(nvl(KOLICINA,0)) / faktor_planske
+
+	       End KOLICINA
+
+	     , SUM(nvl(OPTIMALNA_ZALIHA,0)) OPTIMALNA_ZALIHA_SKL_JM
+	     , case
+	            when faktor_planske <= 1 Then
+	                 SUM(nvl(OPTIMALNA_ZALIHA,0)) * faktor_planske
+	            when faktor_planske > 1 Then
+	                 SUM(nvl(OPTIMALNA_ZALIHA,0)) / faktor_planske
+	       End OPTIMALNA_ZALIHA
+
+
+	     , SUM(nvl(PLANIRANA_PRODAJA,0)) PLANIRANA_PRODAJA_SKL_JM
+	     , case
+	            when faktor_planske <= 1 Then
+	                 SUM(nvl(PLANIRANA_PRODAJA,0)) * faktor_planske
+	            when faktor_planske > 1 Then
+	                 SUM(nvl(PLANIRANA_PRODAJA,0)) / faktor_planske
+	       End PLANIRANA_PRODAJA
+
+
+	From planiranje_stavka ps
+	    , proizvod p
+		,
+		(
+			Select proizvod, DOBAVLJAC, NABAVNA_SIFRA
+			From
+			( Select proizvod
+	               , decode (dobavljac,
+	                 '342',(decode (length(nabavna_sifra)
+	                                    ,4,'965'
+	                                    ,dobavljac
+	                               )
+	                        )
+	               , dobavljac) dobavljac
+
+			       , NABAVNA_SIFRA
+			  From katalog
+			  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+			    and proizvod in (Select PROIZVOD
+			                     From planiranje_stavka ps
+			                     Where
+			                            ps.plan_tip_id			= &c_tip_id
+			                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+			                       and ps.PLAN_period_ID		= &c_period_id
+			                       and ps.plan_trajanje_id		= &c_trajanje_id
+			                       and ps.broj_dok				in (1,2)
+			                     Group BY PROIZVOD
+			                     )
+			  Union
+
+			  Select proizvod
+	               , decode (dobavljac,
+	                 '342',(decode (length(nabavna_sifra)
+	                                    ,4,'965'
+	                                    ,dobavljac
+	                               )
+	                        )
+	               , dobavljac) dobavljac
+
+			       , NABAVNA_SIFRA
+			  From katalog_tranzit
+			  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+			    and proizvod in (Select PROIZVOD
+			                     From planiranje_stavka ps
+			                     Where
+			                            ps.plan_tip_id			= &c_tip_id
+			                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+			                       and ps.PLAN_period_ID		= &c_period_id
+			                       and ps.plan_trajanje_id		= &c_trajanje_id
+			                       and ps.broj_dok				in (1,2)
+			                     Group BY PROIZVOD
+			                     )
+			)
+			Group by proizvod, DOBAVLJAC, NABAVNA_SIFRA
+		) k
+	Where
+
+	      ps.plan_tip_id			= &c_tip_id
+	  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+	  and ps.PLAN_period_ID			= &c_period_id
+	  and ps.plan_trajanje_id		= &c_trajanje_id
+	  and ps.broj_dok				in (1,2)
+	  and ps.proizvod=k.proizvod    (+)
+	  and k.dobavljac is not null
+	  and p.sifra = ps.proizvod
+--and dobavljac='206'
+
+	Group by ps.PROIZVOD, k.dobavljac, k.nabavna_sifra, ps.BROJ_SASTAVNICE
+	, p.jed_mere, p.planska_JM, p.faktor_planske
+
+	Order by to_number(dobavljac) desc, to_number(nabavna_sifra), ps.PROIZVOD
+
+"REM WORKSPACETAB2",Query8,,89
+Select
+  	   ps.PROIZVOD
+     , k.dobavljac, k.nabavna_sifra
+     , ps.BROJ_SASTAVNICE
+     , SUM(nvl(KOLICINA,0)) KOLICINA
+
+     , SUM(nvl(OPTIMALNA_ZALIHA,0)) OPTIMALNA_ZALIHA
+     , SUM(nvl(PLANIRANA_PRODAJA,0)) PLANIRANA_PRODAJA
+
+, case
+--      when dobavljac='965' then
+      when dobavljac='1226' then
+        (select naziv from proizvod@medela where sifra = nabavna_sifra)
+--      when dobavljac='172' then
+--      when dobavljac='206' then
+--      when dobavljac='342' then
+--      when dobavljac='594' then
+--      when dobavljac='138' then
+
+  end pro
+
+
+From planiranje_stavka ps
+	,
+	(
+		Select proizvod, DOBAVLJAC, NABAVNA_SIFRA
+		From
+		( Select proizvod
+               , decode (dobavljac,
+                 '342',(decode (length(nabavna_sifra)
+                                    ,4,'965'
+                                    ,dobavljac
+                               )
+                        )
+               , dobavljac) dobavljac
+
+		       , NABAVNA_SIFRA
+		  From katalog
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &c_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+		                       and ps.PLAN_period_ID		= &c_period_id
+		                       and ps.plan_trajanje_id		= &c_trajanje_id
+		                       and ps.broj_dok				in (1)
+		                     Group BY PROIZVOD
+		                     )
+		  Union
+
+		  Select proizvod
+               , decode (dobavljac,
+                 '342',(decode (length(nabavna_sifra)
+                                    ,4,'965'
+                                    ,dobavljac
+                               )
+                        )
+               , dobavljac) dobavljac
+
+		       , NABAVNA_SIFRA
+		  From katalog_tranzit
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &c_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+		                       and ps.PLAN_period_ID		= &c_period_id
+		                       and ps.plan_trajanje_id		= &c_trajanje_id
+		                       and ps.broj_dok				in (2)
+		                     Group BY PROIZVOD
+		                     )
+		)
+		Group by proizvod, DOBAVLJAC, NABAVNA_SIFRA
+	) k
+Where
+
+      ps.plan_tip_id			= &c_tip_id
+  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+  and ps.PLAN_period_ID			= &c_period_id
+  and ps.plan_trajanje_id		= &c_trajanje_id
+  and ps.broj_dok				in (1,2)
+  and ps.proizvod=k.proizvod    (+)
+  and k.dobavljac is not null
+Group by ps.PROIZVOD, k.dobavljac, k.nabavna_sifra, ps.BROJ_SASTAVNICE
+
+Order by to_number(dobavljac) desc, to_number(nabavna_sifra), ps.PROIZVOD
+
+"REM WORKSPACETAB3",Query9,,9
+Select proizvod, dobavljac, nabavna_sifra from katalog
+where dobavljac= '1226'
+  and proizvod=4439
+
+union
+
+Select proizvod, dobavljac, nabavna_sifra from katalog_tranzit
+where dobavljac= '1226'
+  and proizvod=4439
+"REM WORKSPACETAB4","vidi var",,75
+select 'rub' firma, ps.*
+From planiranje_varijanta@RUBIN ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'pek' firma, ps.*
+From planiranje_varijanta@pekara ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'rat' firma, ps.*
+From planiranje_varijanta@ratar ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'alb' firma, ps.*
+From planiranje_varijanta@albus ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'vit' firma, ps.*
+From planiranje_varijanta@vital ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'med' firma, ps.*
+From planiranje_varijanta@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'sun' firma, ps.*
+From planiranje_varijanta@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+"REM WORKSPACETAB5","vidi stav",,75
+select 'rub' firma, ps.*
+From planiranje_stavka@RUBIN ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'pek' firma, ps.*
+From planiranje_stavka@pekara ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'rat' firma, ps.*
+From planiranje_stavka@ratar ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'alb' firma, ps.*
+From planiranje_stavka@albus ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'vit' firma, ps.*
+From planiranje_stavka@vital ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'med' firma, ps.*
+From planiranje_stavka@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'sun' firma, ps.*
+From planiranje_stavka@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+"REM WORKSPACETAB6","Pazi BRISANJE",,88
+-- STAVKE
+delete planiranje_stavka@RUBIN ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@pekara ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@ratar ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@albus ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@vital ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@medela ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@sunce ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+-----------------------
+-- VARIJANTA
+delete planiranje_varijanta@RUBIN ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@pekara ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@ratar ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@albus ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@vital ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@medela ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@sunce ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+-------------------------
+-- ZAGLAVLJE
+delete planiranje_zaglavlje@RUBIN ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@pekara ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@ratar ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@albus ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@vital ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@medela ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@sunce ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);

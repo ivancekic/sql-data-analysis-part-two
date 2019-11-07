@@ -1,0 +1,94 @@
+"REM WORKSPACETAB0",Query1,,4
+select * from ZAL_GOD_MAG_DAT
+--where na_dat='17.03.2011 00:00:00'
+where stanje < 0
+order by na_dat
+"REM WORKSPACETAB1",Query8,,1
+delete ZAL_GOD_MAG_DAT
+"REM WORKSPACETAB2","stanja minusna",,9
+select * from ZAL_GOD_MAG_DAT
+--where na_dat='01.01.2011 00:00:00'
+--  and pro = '002'
+--where pro = '002'
+--where stanje < 0
+where god = 2011
+and stanje < 0
+and mag <> 140
+order by na_dat
+"REM WORKSPACETAB3",Query5,,16
+select d.org_deo, sd.proizvod, sum(sd.k_robe*sd.faktor*sd.k_robe)
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2010' = d.godina
+--  AND TIP_DOK = 11
+  AND D.ORG_DEO = 2
+  and proizvod = '002'
+  and k_robe <> 0
+  and d.status > 0
+  and d.datum_dok = to_date('31.12.2010','dd.mm.yyyy')
+Group by d.org_deo, sd.proizvod
+"REM WORKSPACETAB4","robna kartica",,22
+select d.org_deo, d.poslovnica, d.godina, d.vrsta_DOk, d.broj_dok, d.datum_dok, d.datum_unosa
+     , sd.proizvod
+     , sd.kolicina
+     , sd.faktor
+     , sd.k_robe
+--     , sum(sd.kolicina*sd.faktor*sd.k_robe)
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+--  AND TIP_DOK = 11
+  AND D.ORG_DEO = 2
+  and proizvod = '032'
+  and k_robe <> 0
+  and d.status > 0
+  and d.datum_dok < to_date('07.01.2011','dd.mm.yyyy')
+--Group by d.org_deo, sd.proizvod
+order by datum_dok, datum_unosa
+"REM WORKSPACETAB5",Query7,,15
+select d.org_deo
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+  and d.org_deo = 2
+  and proizvod = '002'
+  and k_robe <> 0
+  and d.status > 0
+
+Group by d.org_deo, sd.proizvod
+"REM WORKSPACETAB6","sume po dat",,17
+select d.org_deo, d.datum_dok
+     , sum(sd.kolicina*sd.faktor*sd.k_robe) kol
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+  and d.org_deo = 2
+  and proizvod = '032'
+  and k_robe <> 0
+  and d.status > 0
+
+Group by d.org_deo, d.datum_dok, sd.proizvod
+Order by datum_Dok
+"REM WORKSPACETAB7",Query2,,2
+select '02inv' firma, god, max(na_dat) max_na_dat from ZAL_GOD_MAG_DAT
+group by god

@@ -1,0 +1,618 @@
+"REM WORKSPACETAB0",PRAVI_PLAN,,37
+Declare
+
+Begin
+ For Trajanje In
+     (
+       Select TRAJANJE_ID
+       From PLANIRANJE_TRAJANJE
+       Where PLAN_CIKLUS_ID= 2011
+         and PLAN_PERIOD_ID=5
+         and datum_od between to_date('01.10.2011','dd.mm.yyyy') and to_date('31.10.2011','dd.mm.yyyy')
+
+     )
+ loop
+     dbms_output.put_line( 'Trajanje:'|| to_char(trajanje.trajanje_id)) ;
+
+     PLANIRANJE_PACKAGE.Kon_Pravi_Plan_Firma_Sve1 (
+												               NULL
+							                                 , 7 --p_new_plan_tip_id in number
+							                                 , 2011--p_new_plan_ciklus_id in number
+							                                 , 5--p_new_plan_period_id in number
+							                                 , trajanje.trajanje_id--p_new_plan_trajanje_id in number
+							                                 , 1--p_new_broj_dok in number
+							                                 , 'Plan prodaje po mestima isporuke'--||to_char(trajanje.trajanje_id)
+							                                   --p_new_opis_plana in varchar2
+							                                 , 1--p_new_org_deo_id in number
+							                                 , null--p_new_varijanta in number
+							                                 , null--p_new_opis in varchar2
+							                                 , 'INVEJ'--cFirma Varchar2
+							                              );
+														COMMIT;
+
+ End Loop;
+
+
+End;
+
+
+"REM WORKSPACETAB1","NOVO pogledaj pre pravljenja",,49
+       Select
+              pt.TRAJANJE_ID, DATUM_OD
+            , KUPAC_SIFRA, KUPAC_MI, KOMERC_AID, KEY_ACCOUNT, PROIZVOD
+            , SUM(KOLICINA) KOLICINA
+            , pp.naziv naziv_kupca
+            , mi.NAZIV_KORISNIKA
+            , ic.IME||' '||SUBSTR(ic.IME_RODITELJA,1,1)||' '||ic.PREZIME podaci_komerc
+            , ik.IME||' '||SUBSTR(ik.IME_RODITELJA,1,1)||' '||ik.PREZIME podaci_key
+
+       From komerc_plan_prodaje@konsolid k
+          , poslovni_partner pp, mesto_isporuke mi
+          , invej_komercijalisti ic
+          , invej_komercijalisti ik
+          , (select TRAJANJE_ID, DATUM_OD,DATUM_DO from PLANIRANJE_TRAJANJE
+             where PLAN_CIKLUS_ID = &n_Ciklus_id
+               AND PLAN_PERIOD_ID = &n_Period_id
+               AND TRAJANJE_ID = &n_Trajanje_id_od
+            )PT
+
+       WHERE
+
+             K.DATUM BETWEEN Pt.Datum_od AND Pt.Datum_do
+
+         and pp.sifra = k.KUPAC_SIFRA
+         and mi.ppartner=pp.sifra
+         and mi.sifra_mesta=k.KUPAC_MI
+
+         and ic.aid = k.KOMERC_AID
+         and ik.aid = k.KEY_ACCOUNT
+
+         and VratiPPMI (3, to_number(KUPAC_SIFRA), to_number(KUPAC_MI))||komerc_aid
+             not in (Select substr(varijanta_id,1,16)
+                     From planiranje_varijanta
+                     Where Plan_ciklus_Id   = &n_Ciklus_id
+	                   And Plan_period_Id   = &n_Period_id
+ 	                   And PLAN_TRAJANJE_ID between &n_Trajanje_id_od and &n_Trajanje_id_do
+                    )
+
+    GROUP BY
+             pt.TRAJANJE_ID, DATUM_OD
+           , k.KUPAC_SIFRA, k.KUPAC_MI, k.KOMERC_AID, k.KEY_ACCOUNT, k.PROIZVOD
+           , pp.naziv
+           , mi.NAZIV_KORISNIKA
+           , ic.IME||' '||SUBSTR(ic.IME_RODITELJA,1,1)||' '||ic.PREZIME
+           , ik.IME||' '||SUBSTR(ik.IME_RODITELJA,1,1)||' '||ik.PREZIME
+
+    ORDER BY
+             pt.TRAJANJE_ID
+           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI), KOMERC_AID, KEY_ACCOUNT, to_number(PROIZVOD)
+"REM WORKSPACETAB2","Novo PRAVI_PLAN",,386
+Declare
+--    cSess Varchar2, n_Tip_Id Number, n_Ciklus_Id Number, n_Period_Id Number, n_Trajanje_Id Number
+    p_new_plan_tip_id  number				:= 7;
+    p_new_plan_ciklus_id number          := 2011;
+    p_new_plan_period_id number          := 5;
+    p_new_plan_trajanje_id number        := 244;
+    p_new_broj_dok number                := 556;
+    p_new_opis_plana varchar2(100)       := 'Dnevni plan prodaje po terenima';
+    p_new_org_deo_id number              := 1;
+    p_new_varijanta number               := 1;
+    p_new_opis varchar2(100) 		     := 'Dnevni plan prodaje po terenima';
+    cFirma Varchar2(100)                 := 'INVEJ';
+
+    ------------------------------ cursor za planove START
+	Cursor za_planove_cur Is
+       SELECT
+              pt.TRAJANJE_ID, PT.DATUM_OD
+            , KUPAC_SIFRA, KUPAC_MI, KOMERC_AID, KEY_ACCOUNT, PROIZVOD
+            , SUM(KOLICINA) KOLICINA
+            , pp.naziv naziv_kupca
+            , mi.NAZIV_KORISNIKA
+            , ic.IME||' '||SUBSTR(ic.IME_RODITELJA,1,1)||' '||ic.PREZIME podaci_komerc
+            , ik.IME||' '||SUBSTR(ik.IME_RODITELJA,1,1)||' '||ik.PREZIME podaci_key
+
+       From komerc_plan_prodaje@konsolid k
+          , poslovni_partner pp, mesto_isporuke mi
+          , invej_komercijalisti ic
+          , invej_komercijalisti ik
+          , (select TRAJANJE_ID, DATUM_OD,DATUM_DO from PLANIRANJE_TRAJANJE
+             where PLAN_CIKLUS_ID = &n_Ciklus_id
+               AND PLAN_PERIOD_ID = &n_Period_id
+               AND TRAJANJE_ID = &n_Trajanje_id_od
+            )PT
+
+       WHERE
+
+             K.DATUM BETWEEN Pt.Datum_od AND Pt.Datum_do
+
+         and pp.sifra = k.KUPAC_SIFRA
+         and mi.ppartner=pp.sifra
+         and mi.sifra_mesta=k.KUPAC_MI
+
+         and ic.aid = k.KOMERC_AID
+         and ik.aid = k.KEY_ACCOUNT
+
+         and VratiPPMI (3, to_number(KUPAC_SIFRA), to_number(KUPAC_MI))||komerc_aid
+             not in (Select substr(varijanta_id,1,16)
+                     From planiranje_varijanta
+                     Where Plan_ciklus_Id   = &n_Ciklus_id
+	                   And Plan_period_Id   = &n_Period_id
+ 	                   And PLAN_TRAJANJE_ID between &n_Trajanje_id_od and &n_Trajanje_id_do
+                    )
+
+    GROUP BY
+             pt.TRAJANJE_ID, DATUM_OD
+           , k.KUPAC_SIFRA, k.KUPAC_MI, k.KOMERC_AID, k.KEY_ACCOUNT, k.PROIZVOD
+           , pp.naziv
+           , mi.NAZIV_KORISNIKA
+           , ic.IME||' '||SUBSTR(ic.IME_RODITELJA,1,1)||' '||ic.PREZIME
+           , ik.IME||' '||SUBSTR(ik.IME_RODITELJA,1,1)||' '||ik.PREZIME
+
+    ORDER BY
+             pt.TRAJANJE_ID
+           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI), KOMERC_AID, KEY_ACCOUNT, to_number(PROIZVOD)
+	;
+
+    za_planove za_planove_cur % rowtype;
+    ------------------------------ cursor za planove END
+
+    cOldKup Varchar2(7);
+    cOldMIsp Varchar2(7);
+    nOldKomm Number;
+    nOldKeyAcc Number;
+
+    nVarijanta Number;
+    cVarOpis Varchar2(300);
+    cPostojiPlan Varchar2(10);
+
+    nUkStavki Number;
+
+    KOMANDA varchar2(32000) := '';
+    nOrg NUmber;
+    nFirmaRBrStavki Number;
+
+    nImaPodZaPlan Number;
+
+  Begin
+    nOrg := 1;
+    nFirmaRBrStavki := 0;
+    nImaPodZaPlan := 0;
+
+
+    cPostojiPlan := Planiranje_package.ProveriPlanZag(   cFirma								--cLink Varchar2
+                                                       , p_new_plan_tip_id                  --in number
+                                                       , p_new_plan_ciklus_id               --in number
+                                                       , p_new_plan_period_id               --in number
+                                                       , p_new_plan_trajanje_id             --in number
+                                                       , p_new_broj_dok                     --in number
+                                                     ) ;
+    If cPostojiPlan IN ('-1','0') Then
+       dbms_output.put_line('Novi plan je u statusu:'||cPostojiPlan||' !');
+       Planiranje_package.BrisiPlanStaNew(  cFirma
+                                          , p_new_plan_tip_id
+                                          , p_new_plan_ciklus_id
+                                          , p_new_plan_period_id
+                                          , p_new_plan_trajanje_id
+                                          , p_new_broj_dok
+                                          , 'D'
+                                        );
+		--commit;
+		--
+       Planiranje_package.BrisiPlanVarNew(  cFirma
+                                          , p_new_plan_tip_id
+                                          , p_new_plan_ciklus_id
+                                          , p_new_plan_period_id
+                                          , p_new_plan_trajanje_id
+                                          , p_new_broj_dok
+                                          , 'D'
+                                        );
+
+       Planiranje_package.BrisiPlanZagNew(  cFirma
+                                          , p_new_plan_tip_id
+                                          , p_new_plan_ciklus_id
+                                          , p_new_plan_period_id
+                                          , p_new_plan_trajanje_id
+                                          , p_new_broj_dok
+                                          , 'D'
+                                        );
+
+--		commit;
+
+    ElsIf cPostojiPlan = '1' Then
+       dbms_output.put_line('Novi plan je u statusu:'||cPostojiPlan||' !');
+    End If;
+
+    nOldKomm := null;
+    nOldKeyAcc := null;
+
+--    dDat_Od := null;
+--    dDat_Do := null;
+
+    if cPostojiPlan IN( '-1','0') then
+
+	    dbms_output.put_line(        rpad('Kupac',7)
+	                         ||' '|| rpad('M.Isp',7)
+	                         ||' '|| rpad('Kom_aid',7)
+	                         ||' '|| rpad('Key_acc',7)
+	                         ||' '|| rpad('Proizvod',8)
+	                         ||' '|| rpad('Kolicina',20)
+	                        );
+
+	    dbms_output.put_line(        rpad('-',7,'-')
+	                         ||' '|| rpad('-',7,'-')
+	                         ||' '|| rpad('-',7,'-')
+	                         ||' '|| rpad('-',7,'-')
+	                         ||' '|| rpad('-',8,'-')
+	                         ||' '|| rpad('-',20,'-')
+	                        );
+
+	    Open za_planove_cur;
+		Fetch za_planove_cur Into za_planove;
+          If za_planove_cur % NotFound Then
+             dbms_output.put_line(  'Plan sa zadatim brojem ne postoji, '
+                                  ||'ali je plan prodaje za rute u tom periodu vec preuzet u neki drugi plan po mestima isporuke plan i rute su azurirane.');
+             nImaPodZaPlan := 0;
+          Else
+             nImaPodZaPlan := 1;
+          End If;
+        Close za_planove_cur;
+
+        If nImaPodZaPlan = 1 Then
+		   INSERT INTO PLANIRANJE_ZAGLAVLJE
+		      (
+		          PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, ORG_DEO_ID, BROJ_DOK1
+		        , OPIS, STATUS_ID, KREIRAO_USER, KREIRAO_DATUM, OVERIO_USER, OVERIO_DATUM
+              )
+  		   VALUES
+   		     (
+		        P_new_plan_tip_id, P_new_plan_ciklus_id, P_new_plan_period_id, P_new_plan_trajanje_id, p_new_broj_dok, nOrg, p_new_broj_dok
+		      , p_new_opis_plana, 1, USER, sysdate, USER, sysdate
+		     );
+
+	        Open za_planove_cur ;
+	       	Loop
+	       	Fetch za_planove_cur Into za_planove;
+	       	Exit When za_planove_cur % NotFound;
+
+	        nUkStavki := nvl(nUkStavki,0) + 1;
+	--        dbms_output.put_line(         'OLD kup:'  || nvl(cOldKup,'***') ||' New ' || za_planove.KUPAC_SIFRA
+	--                              ||' '|| 'OLD MI:'   || nvl(cOldMIsp,'***') ||' New ' || za_planove.KUPAC_MI
+	--                              ||' '|| 'OLD komm:' || to_char(nvl(nOldKomm,-987)) ||' New ' || to_char(za_planove.KOMERC_AID)
+	--                              ||' '|| 'OLD key:'  || to_char(nvl(nOldKeyAcc,-987)) ||' New ' || to_char(za_planove.KEY_ACCOUNT)
+	--                            ) ;
+
+				    If nvl(cOldKup,'bb')  != za_planove.KUPAC_SIFRA
+				       Then
+			  	          nVarijanta := VratiPPMI (3, to_number(za_planove.KUPAC_SIFRA), to_number(za_planove.KUPAC_MI));
+			  	          nVarijanta :=   to_number(   to_char(nVarijanta)
+			  	                                    || to_char(za_planove.KOMERC_AID)
+				                                    || to_char(za_planove.KEY_ACCOUNT)
+				                                   );
+
+			              cVarOpis :=   'Kupac: ' || za_planove.naziv_kupca
+			                          ||', m.isp.: '     || za_planove.NAZIV_KORISNIKA
+			                          ||', komerc.: '    || za_planove.podaci_komerc
+			                          ||', key_acc.: '   || za_planove.podaci_key;
+
+--			  	          dbms_output.put_line( 'Nova var par:' || to_char(nVarijanta)) ;
+--			  	          dbms_output.put_line( 'Nova var par opis:' || cVarOpis ) ;
+			  	          nFirmaRBrStavki := 0;
+			              INSERT INTO PLANIRANJE_VARIJANTA
+					           (
+		 				          PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, VARIJANTA_ID, OPIS, STATUS_ID
+	 				           )
+					      values
+					           (
+						          P_new_plan_tip_id, P_new_plan_ciklus_id, P_new_plan_period_id, P_new_plan_trajanje_id, p_new_broj_dok, nVarijanta, cVarOpis, 1
+				               );
+
+				    Else
+				       If nvl(cOldMIsp,'bb') != za_planove.KUPAC_MI
+				          Then
+			  	             nVarijanta := VratiPPMI (3, to_number(za_planove.KUPAC_SIFRA), to_number(za_planove.KUPAC_MI));
+			  	             nVarijanta :=   to_number(   to_char(nVarijanta)
+			  	                                       || to_char(za_planove.KOMERC_AID)
+				                                       || to_char(za_planove.KEY_ACCOUNT)
+				                                      );
+
+			                 cVarOpis :=   'Kupac: ' || za_planove.naziv_kupca
+			                             ||', m.isp.: '     || za_planove.NAZIV_KORISNIKA
+			                             ||', komerc.: '    || za_planove.podaci_komerc
+			                             ||', key_acc.: '   || za_planove.podaci_key;
+--			  	             dbms_output.put_line( 'Nova var misp:' || to_char(nVarijanta)) ;
+--				             dbms_output.put_line( 'VAR opis:' || cVarOpis ) ;
+				             nFirmaRBrStavki := 0;
+			                 INSERT INTO PLANIRANJE_VARIJANTA
+					             (
+		 				            PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, VARIJANTA_ID, OPIS, STATUS_ID
+	 				             )
+					         values
+					            (
+						          P_new_plan_tip_id, P_new_plan_ciklus_id, P_new_plan_period_id, P_new_plan_trajanje_id, p_new_broj_dok, nVarijanta, cVarOpis, 1
+				                );
+			  	       Else
+			 	          If nOldKomm != za_planove.KOMERC_AID
+				             Then
+			  	                 nVarijanta := VratiPPMI (3, to_number(za_planove.KUPAC_SIFRA), to_number(za_planove.KUPAC_MI));
+			  	                 nVarijanta :=   to_number(   to_char(nVarijanta)
+			  	                                           || to_char(za_planove.KOMERC_AID)
+				                                           || to_char(za_planove.KEY_ACCOUNT)
+				                                          );
+			                     cVarOpis :=   'Kupac: ' || za_planove.naziv_kupca
+			                                 ||', m.isp.: '     || za_planove.NAZIV_KORISNIKA
+			                                 ||', komerc.: '    || za_planove.podaci_komerc
+			                                 ||', key_acc.: '   || za_planove.podaci_key;
+
+--			  	                 dbms_output.put_line( 'Nova var kom:' || to_char(nVarijanta)) ;
+--			            	     dbms_output.put_line( 'VAR opis:' || cVarOpis ) ;
+			            	     nFirmaRBrStavki := 0;
+			                     INSERT INTO PLANIRANJE_VARIJANTA
+					                 (
+		 				                PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, VARIJANTA_ID, OPIS, STATUS_ID
+	 				                 )
+					             values
+					             (
+						              P_new_plan_tip_id, P_new_plan_ciklus_id, P_new_plan_period_id, P_new_plan_trajanje_id, p_new_broj_dok, nVarijanta, cVarOpis, 1
+				                 );
+
+			  	          Else
+			 	             If nOldKeyAcc != za_planove.KEY_ACCOUNT
+				                Then
+			  	                   nVarijanta := VratiPPMI (3, to_number(za_planove.KUPAC_SIFRA), to_number(za_planove.KUPAC_MI));
+			  	                   nVarijanta :=   to_number(   to_char(nVarijanta)
+			  	                                             || to_char(za_planove.KOMERC_AID)
+				                                             || to_char(za_planove.KEY_ACCOUNT)
+				                                            );
+			                       cVarOpis :=   'Kupac: ' || za_planove.naziv_kupca
+			                                   ||', m.isp.: '     || za_planove.NAZIV_KORISNIKA
+			                                   ||', komerc.: '    || za_planove.podaci_komerc
+			                                   ||', key_acc.: '   || za_planove.podaci_key;
+
+--			  	                   dbms_output.put_line( 'Nova var key:' || to_char(nVarijanta)) ;
+--			           	           dbms_output.put_line( 'VAR opis:' || cVarOpis ) ;
+			           	           nFirmaRBrStavki := 0;
+			                       INSERT INTO PLANIRANJE_VARIJANTA
+					                   (
+		 				                  PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, VARIJANTA_ID, OPIS, STATUS_ID
+	 				                   )
+					               values
+					                   (
+						                  P_new_plan_tip_id, P_new_plan_ciklus_id, P_new_plan_period_id, P_new_plan_trajanje_id, p_new_broj_dok, nVarijanta, cVarOpis, 1
+				                       );
+			                 End If;
+			 	          End If;
+			           End If;
+				    End If;
+
+
+
+--				    dbms_output.put_line(        lpad(za_planove.KUPAC_SIFRA,7)
+--				                         ||' '|| lpad(za_planove.KUPAC_MI,7)
+--				                         ||' '|| lpad(to_char(za_planove.KOMERC_AID),7)
+--				                         ||' '|| lpad(to_char(za_planove.KEY_ACCOUNT),7)
+--				                         ||' '|| lpad(za_planove.PROIZVOD,8)
+--				                         ||' '|| lpad(to_char(za_planove.KOLICINA),20)
+--
+--				                         ||' ***'|| lpad(to_char(nUkStavki),20)
+--				                        );
+
+	                nFirmaRBrStavki := nvl(nFirmaRBrStavki,0) + 1;
+	                INSERT INTO PLANIRANJE_STAVKA
+				                    (
+									    PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, VARIJANTA_ID
+	 				                  , STAVKA_ID, PROIZVOD, BROJ_SASTAVNICE
+	 				                  , KOLICINA, STATUS_ID, OPTIMALNA_ZALIHA, PLANIRANA_PRODAJA
+	 				                  , KORISNIK, DATUM
+	                                )
+	 	                VALUES
+		 		        (
+		  		             P_new_plan_tip_id, P_new_plan_ciklus_id, P_new_plan_period_id, P_new_plan_trajanje_id, p_new_broj_dok, nVarijanta
+		  		           , nFirmaRBrStavki, za_planove.proizvod, null
+	--	  		           , za_planove.kolicina, 0, 0Pravi_firma_stav.optimalna_zaliha, Pravi_firma_stav.planirana_prodaja
+		  		           , za_planove.kolicina, 0, 0, 0
+		  		           , USER, sysdate
+		 		        );
+
+
+
+			        cOldKup    := za_planove.KUPAC_SIFRA;
+			        cOldMIsp   := za_planove.KUPAC_MI;
+			        nOldKomm   := za_planove.KOMERC_AID;
+			        nOldKeyAcc := za_planove.KEY_ACCOUNT;
+
+		    End loop;
+		    Close za_planove_cur ;
+
+--		    -- jos update ruta komercijalista
+	        Update komerc_rute@konsolid krr
+	        Set status = 'KR'
+	        Where krr.datum between
+                                    (select DATUM_OD from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+                                AND
+                                    (select DATUM_DO from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+
+	          and (krr.komerc_aid,krr.kupac_sifra,krr.kupac_mi)
+	               in(
+			         	Select kp.komerc_aid, kupac_sifra, kupac_mi
+	  			        From komerc_plan_prodaje@konsolid kp
+				        where kp.datum between
+                                    (select DATUM_OD from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+                                AND
+                                    (select DATUM_DO from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+
+				        Group by kp.komerc_aid, kupac_sifra, kupac_mi
+	                 )
+	        ;
+		End If;
+    Else
+        dbms_output.put_line( 'Plan u koji zelite da kopirate je overen !') ;
+    End If;
+
+    cOldKup         := null;
+    cOldMIsp        := null;
+    nOldKomm        := null;
+    nOldKeyAcc      := null;
+    cPostojiPlan    := null;
+    nUkStavki       := null;
+    nFirmaRBrStavki := null;
+
+  End;
+"REM WORKSPACETAB3",Query17,,37
+	        Update komerc_rute@konsolid krr
+	        Set status = 'KR'
+	        Where krr.datum between
+                                    (select DATUM_OD from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+                                AND
+                                    (select DATUM_DO from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+
+	          and (krr.komerc_aid,krr.kupac_sifra,krr.kupac_mi)
+	               in(
+			         	Select kp.komerc_aid, kupac_sifra, kupac_mi
+	  			        From komerc_plan_prodaje@konsolid kp
+				        where kp.datum between
+                                    (select DATUM_OD from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+                                AND
+                                    (select DATUM_DO from PLANIRANJE_TRAJANJE
+                                     where PLAN_CIKLUS_ID = &n_Ciklus_id
+                                       AND PLAN_PERIOD_ID = &n_Period_id
+                                       AND TRAJANJE_ID = &n_Trajanje_id_od
+                                    )
+
+				        Group by kp.komerc_aid, kupac_sifra, kupac_mi
+	                 )
+	        ;
+
+
+"REM WORKSPACETAB4",PLAN_ZAG,,5
+--Select * from
+DELETE
+planiranje_ZAGLAVLJE
+where plan_tip_id=7
+and broj_dok = 556
+"REM WORKSPACETAB5",PLAN_VAR,,5
+--Select * from
+DELETE
+planiranje_VARIJANTA
+where plan_tip_id=7
+and broj_dok = 556
+"REM WORKSPACETAB6",PLAN_STAV,,6
+Select * from
+--delete
+planiranje_STAVKA
+where plan_tip_id=7
+and broj_dok=556
+
+"REM WORKSPACETAB7","VIDI RUTE",,33
+select kpp.*, krr.*
+from
+	(
+		Select kp.komerc_aid, kupac_sifra, kupac_mi
+		From komerc_plan_prodaje@konsolid kp
+		   ,(
+				  Select *
+				  From PLANIRANJE_TRAJANJE
+				  Where Plan_ciklus_Id   = &n_Ciklus_id
+				    And Plan_period_Id   = &n_Period_id
+				    And trajanje_Id      = &n_Trajanje_id
+		    ) pt
+		where kp.datum between pt.datum_od and pt.datum_do
+		Group by kp.komerc_aid, kupac_sifra, kupac_mi
+	) kpp
+	,
+	(
+		Select kr.*
+		From komerc_rute@konsolid kr
+		   ,(
+				  Select *
+				  From PLANIRANJE_TRAJANJE
+				  Where Plan_ciklus_Id   = &n_Ciklus_id
+				    And Plan_period_Id   = &n_Period_id
+				    And trajanje_Id      = &n_Trajanje_id
+		    ) pt
+		where kr.datum between pt.datum_od and pt.datum_do
+	) krr
+where kpp.komerc_aid  =krr.komerc_aid
+  and kpp.kupac_sifra =krr.kupac_sifra
+  and kpp.kupac_mi    =krr.kupac_mi
+
+ORDER BY to_number(krr.KUPAC_SIFRA), to_number(krr.KUPAC_MI), krr.KOMERC_AID
+"REM WORKSPACETAB8","Za Update rute",,26
+Select krr.*
+From komerc_rute@konsolid krr
+   ,(
+		  Select *
+		  From PLANIRANJE_TRAJANJE
+		  Where Plan_ciklus_Id   = &n_Ciklus_id
+		    And Plan_period_Id   = &n_Period_id
+		    And trajanje_Id      = &n_Trajanje_id
+    ) pt
+where krr.datum between pt.datum_od and pt.datum_do
+  and (krr.komerc_aid,krr.kupac_sifra,krr.kupac_mi)
+      in(
+			Select kp.komerc_aid, kupac_sifra, kupac_mi
+			From komerc_plan_prodaje@konsolid kp
+			   ,(
+					  Select *
+					  From PLANIRANJE_TRAJANJE
+					  Where Plan_ciklus_Id   = &n_Ciklus_id
+					    And Plan_period_Id   = &n_Period_id
+					    And trajanje_Id      = &n_Trajanje_id
+			    ) pt
+			where kp.datum between pt.datum_od and pt.datum_do
+			Group by kp.komerc_aid, kupac_sifra, kupac_mi
+        )
+
+ORDER BY to_number(krr.KUPAC_SIFRA), to_number(krr.KUPAC_MI), krr.KOMERC_AID
+"REM WORKSPACETAB9",Query17,,5
+--UPDATE komerc_rute@konsolid krr
+--SET STATUS = 'SR'
+Select krr.*
+From komerc_rute@konsolid krr
+where krr.datum between to_date('01.09.2011','dd.mm.yyyy') and  to_date('30.09.2011','dd.mm.yyyy')
+"REM WORKSPACETAB10","Pazi UPDATE",,10
+Update komerc_rute@konsolid krr
+set status = 'SR'
+where krr.datum between to_date('01.09.2011','dd.mm.yyyy') and  to_date('30.09.2011','dd.mm.yyyy')
+  and (krr.komerc_aid,krr.kupac_sifra,krr.kupac_mi)
+      in(
+			Select kp.komerc_aid, kupac_sifra, kupac_mi
+			From komerc_plan_prodaje@konsolid kp
+			where kp.datum between to_date('01.09.2011','dd.mm.yyyy') and  to_date('30.09.2011','dd.mm.yyyy')
+			Group by kp.komerc_aid, kupac_sifra, kupac_mi
+        )
+"REM WORKSPACETAB11",Plan_per,,1
+SELECT * FROM PLANIRANJE_PERIOD
+"REM WORKSPACETAB12",plan_trajanje,,5
+SELECT * FROM PLANIRANJE_TRAJANJE
+WHERE PLAN_CIKLUS_ID= 2011
+  and PLAN_PERIOD_ID= 5
+--  and TRAJANJE_ID between 244 and 273
+ORDER BY PLAN_PERIOD_ID,TRAJANJE_ID

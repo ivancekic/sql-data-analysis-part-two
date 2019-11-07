@@ -1,0 +1,131 @@
+"REM WORKSPACETAB0",Query1,,1
+Select * from Virmanski_Nalog;
+"REM WORKSPACETAB1",Query2,,1
+Exec PVirmanskiNalog.DodajSlog( to_date('22.09.2010','dd.mm.yyyy'), 212,'1');
+"REM WORKSPACETAB2",Query3,,1
+select * from virmanski_nalog
+"REM WORKSPACETAB3",Query4,,7
+       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%' ;
+"REM WORKSPACETAB4",PorezNaDoh,,16
+
+       Select LISTA_RADNIK_RADNIK --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste, Radnici
+       Where Lista_Obr_Tio_Tip_Obracuna = '1'
+         And Lista_Obr_Obracun = 212
+         And Lista_Radnik_Radnik= Radnik
+         And OPS_OPSTINA_ZIVI_U in (       Select Distinct OPS_OPSTINA_ZIVI_U
+       From Radnici
+       Where Radnik Not Like '_999%'
+       Union
+       Select Distinct OPS_PRIJAVE
+       From Radnici
+       Where Radnik Not Like '_999%')
+                And Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12'
+--group by OPS_OPSTINA_ZIVI_U
+order by to_number(LISTA_RADNIK_RADNIK)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB5",Query9,,41
+select * from
+(
+       Select d2.LISTA_RADNIK_RADNIK rad_por
+       ,
+       (
+
+	       Select d1.LISTA_RADNIK_RADNIK --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+	       From Detalji_Liste d1, Radnici r1
+	       Where d1.Lista_Obr_Tio_Tip_Obracuna = '1'
+	         And d1.Lista_Obr_Obracun = 212
+	         And d1.Lista_Radnik_Radnik= Radnik
+	         And r1.OPS_OPSTINA_ZIVI_U
+	             in (Select Distinct OPS_OPSTINA_ZIVI_U
+	                 From Radnici
+	                 Where Radnik Not Like '_999%'
+	                 Union
+	                 Select Distinct OPS_PRIJAVE
+	                 From Radnici
+	                 Where Radnik Not Like '_999%')
+	                   And Dlis_Type ='D_ZBIR'
+	                   AND Zbir_Zbir='86'
+	                   and  d1.Lista_Radnik_Radnik =  d2.Lista_Radnik_Radnik
+
+
+       ) rad_por_pre
+
+       From Detalji_Liste d2, Radnici r2
+       Where d2.Lista_Obr_Tio_Tip_Obracuna = '1'
+         And d2.Lista_Obr_Obracun = 212
+         And d2.Lista_Radnik_Radnik= r2.Radnik
+         And r2.OPS_OPSTINA_ZIVI_U in (       Select Distinct OPS_OPSTINA_ZIVI_U
+                                              From Radnici
+                                              Where Radnik Not Like '_999%'
+                                              Union
+                                              Select Distinct OPS_PRIJAVE
+                                              From Radnici
+                                              Where Radnik Not Like '_999%')
+       And Dlis_Type ='D_ZBIR' AND Zbir_Zbir='12'
+)
+where rad_por = rad_por_pre
+order by to_number(rad_por)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB6",PVirmani,,12
+declare
+cMesec Obracuni.Obracun_za%Type;
+nBrojObracuna Number := 212;
+cTipObracun Varchar2(2) := '1';
+
+Begin
+			Select Obracun_Za Into cMesec
+            From Obracuni
+            Where Obracun = nBrojObracuna and Tio_Tip_Obracuna = cTipObracun;
+
+            dbms_output.put_line('mesec '|| cMesec);
+End;
+"REM WORKSPACETAB7",Query11,,2
+select * from OBRACUNI
+where obracun = 212
+"REM WORKSPACETAB8",PorezNaDohPre,,18
+       Select d1.LISTA_RADNIK_RADNIK --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste d1, Radnici r1
+       Where d1.Lista_Obr_Tio_Tip_Obracuna = '1'
+         And d1.Lista_Obr_Obracun = 212
+         And d1.Lista_Radnik_Radnik= Radnik
+         And r1.OPS_OPSTINA_ZIVI_U
+             in (Select Distinct OPS_OPSTINA_ZIVI_U
+                 From Radnici
+                 Where Radnik Not Like '_999%'
+                 Union
+                 Select Distinct OPS_PRIJAVE
+                 From Radnici
+                 Where Radnik Not Like '_999%')
+                   And Dlis_Type ='D_ZBIR'
+                   AND Zbir_Zbir='86'
+--group by OPS_OPSTINA_ZIVI_U
+--order by OPS_OPSTINA_ZIVI_U
+order by to_number(LISTA_RADNIK_RADNIK)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB9",Query8,,6
+       Select * --OPS_OPSTINA_ZIVI_U, nvl(Sum( NVL(Iznos,0) ),0)
+       From Detalji_Liste
+       Where Lista_Obr_Tio_Tip_Obracuna = '1'
+         And Lista_Obr_Obracun = 212
+         And Lista_Radnik_Radnik= '001723'
+order by to_number(LISTA_RADNIK_RADNIK)--OPS_OPSTINA_ZIVI_U
+"REM WORKSPACETAB10",Query7,,15
+Select *
+From Detalji_Liste
+Where Lista_Obr_Tio_Tip_Obracuna = '1'
+  And Lista_Obr_Obracun = 212
+--  And OPS_OPSTINA_ZIVI_U
+--      in (Select Distinct OPS_OPSTINA_ZIVI_U
+--          From Radnici
+--          Where Radnik Not Like '_999%'
+--          Union
+--          Select Distinct OPS_PRIJAVE
+--          From Radnici
+--          Where Radnik Not Like '_999%')
+--            And Dlis_Type ='D_ZBIR'
+--            AND Zbir_Zbir='86'
+--

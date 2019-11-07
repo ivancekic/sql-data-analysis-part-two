@@ -1,0 +1,385 @@
+"REM WORKSPACETAB0",Query1,,3
+Select ROWID, M.* from mapiranje m
+where ul02='IVANC'
+ORDER BY MODUL, TO_NUMBER(UL03), TO_NUMBER(UL01)
+"REM WORKSPACETAB1",DOKUMENT.sql,,185
+--3784
+-- plac 3
+--27558 -- 20-1410
+--27675 -- 20-1414
+
+
+--96.05
+--10067 mag 91 umesto 6023 treba 9145
+
+--11787
+-- na 28
+SELECT
+d.rowid,
+--pproizvod.naziv(d.proizvod) naz,
+--(cena-cena1)*kolicina vred,
+
+--d.datum_dok + d.valuta_placanja,
+--(select NABAVNA_SIFRA
+--FROM KATALOG_TRANZIT
+--where dobavljac = '342' and proizvod = d.proizvod
+--),
+D.*
+
+
+--VRSTA_DOK,BROJ_DOK,GODINA,TIP_DOK,DATUM_DOK,DATUM_UNOSA,USER_ID
+--,PPARTNER,PPoslovniPartner.tip(PPARTNER) tip_Prt
+--,REG_BROJ,STATUS,DATUM_STORNA,DATUM_VALUTE,PREVOZ,CENA_PREVOZA,ORG_DEO,NACIN_OTPREME,FRANKO,MESTO_ISPORUKE,PP_ISPORUKE,RADNI_NALOG,POSLOVNICA,VAZI_DO,VRSTA_IZJAVE,RABAT,SPEC_RABAT,KASA,TIP_KASE,ROK_KASE,DPO,VALUTA_PLACANJA,NACIN_PLACANJA,BROJ_DOK1,SKLOP,JM_UG,IZNOS_UG,CENA_UG_JM,DATUM_IZVORNOG_DOK,NPOLJE1,NPOLJE2,NPOLJE3,NPOLJE4,NPOLJE5,CPOLJE1,CPOLJE2,CPOLJE3,CPOLJE4,CPOLJE5,DPOLJE1,DPOLJE2,DPOLJE3,DPOLJE4,DPOLJE5
+
+
+--, round(round(nvl(d.Kolicina * d.Cena*(1-d.Rabat/100) +
+--                  round(nvl(Z_TROSKOVI,0),2)
+--                 ,0)
+--             ,2) / kolicina * 1.02
+--       ,2)
+
+FROM
+--
+--dokument  d
+--VEZNI_DOK d
+--,
+--komentar d
+--FROM
+stavka_Dok d --,
+--zavisni_troskovi d
+--ZAVISNI_TROSKOVI_STAVKE d
+--prosecni_cenovnik d
+--stavka_ambalaze d
+
+--dokument@rubin  d
+--VEZNI_DOK@rubin d
+
+--komentar d
+--FROM
+--stavka_Dok@SUNCE d --,
+--zavisni_troskovi d
+--prosecni_cenovnik d
+WHERE d.godina = 2013
+--and d.VRSTA_DOK in (10,11) --and d.status = 4
+--and d.proizvod=10989
+--and org_deo = 105
+and (
+         ( d.VRSTA_DOK = '8' and d.broj_dok in ('9064') )
+--or
+--         ( d.VRSTA_DOK = '3' and d.broj_dok in ('8354') )
+
+
+
+
+--         ( d.VRSTA_DOK = 2 and d.broj_dok in ('7382') )
+--------------- prijemnica
+--      or
+--          ( d.VRSTA_DOK =3 And d.BROJ_DOK in('16951')) --1351--
+------          ----
+--      or
+--          ( d.VRSTA_DOK = 4 And d.BROJ_DOK in('657')) --1351
+--      or
+--          ( d.VRSTA_DOK = 5 And d.BROJ_DOK in('109')) --1351
+--      or
+--          ( d.VRSTA_DOK = 5 And d.BROJ_DOK in('657')) --1351
+--------------------------------------------------------------------------
+          ----
+
+--          ( d.VRSTA_DOK = 85 And d.BROJ_DOK in('6459')) --1351--
+--
+--      or
+--          ( d.VRSTA_DOK = 27 And d.BROJ_DOK in('25')) --1351--
+
+--      or
+--          ( d.VRSTA_DOK = 9 And d.BROJ_DOK in('254')) --1351--
+----
+----
+--      or
+--          ( d.VRSTA_DOK = 10 And d.BROJ_DOK in('16329','16449')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(11) And d.BROJ_DOK in('15152','15249')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(12) And d.BROJ_DOK in('1')) --1351--
+----      or
+----          ( d.VRSTA_DOK in(13) And d.BROJ_DOK in('347')) --1351--
+----
+--      or
+--          ( d.VRSTA_DOK in(61) And d.BROJ_DOK in('1515')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(27) And d.BROJ_DOK in('35')) --1351--
+
+--or
+--          ( d.VRSTA_DOK in(70) And d.BROJ_DOK in('19867')) --1351--
+--or
+--          ( d.VRSTA_DOK in(71) And d.BROJ_DOK in('411')) --1351--
+--
+--or
+--          ( d.VRSTA_DOK in(73) And d.BROJ_DOK in('49')) --1351--
+--or
+--          ( d.VRSTA_DOK in(74) And d.BROJ_DOK in('82')) --1351--
+--
+--      or
+--          ( d.VRSTA_DOK in(80) And d.BROJ_DOK in('64')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(90) And d.BROJ_DOK in('1270')) --1351--
+         )
+--
+
+--and proizvod in (6488,6679)
+--  and org_deo = 11
+
+--  and d.org_deo in (113)
+--  and datum_dok = to_date('04.09.2009','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----            (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--              (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in('350092','350095')
+--  and proizvod = 19277
+--order by stavka
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+
+--order by to_number(proizvod)
+order by d.broj_dok
+
+--and REALIZOVANO <> kolicina
+--order by cena
+--and d.cena<>d.cena1*d.faktor
+--order by to_number(d.broj_dok)
+"REM WORKSPACETAB2",Query7,,3
+Select * from broj_radnog_naloga
+where godina = 2013
+  and br_radnog_naloga='0230-35'
+"REM WORKSPACETAB3",Query5,,4
+Select UPPER(PMapiranje.MOJE_PLAN_MAPIR (   :Button_palette.C_NAZIV_KOPIRANJA_MAP 
+                                            , :NOVI_PLAN.PLAN_TIP_ID
+                                            , :Button_palette.cKorisnik)
+                                          )
+"REM WORKSPACETAB4",Query6,,3
+Select * from PLANIRANJE_MAPIRANJE
+where instr(upper(vrsta),'PLAN_')>0
+order by vrsta, red_broj
+"REM WORKSPACETAB5",Query11,,1
+DESC PLANIRANJE_STAVKA
+"REM WORKSPACETAB6",Query3,,9
+select TIP_ID_IZ, PTI.TIP_NAZIV
+     , TIP_ID_U,PTU.TIP_NAZIV
+from planiranje_tip_kopi_prava PK
+   , PLANIRANJE_TIP PTI
+   , PLANIRANJE_TIP PTU
+Where tip_id_iz=PTI.TIP_ID
+  AND tip_id_U=PTU.TIP_ID
+
+ORDER BY TIP_ID_IZ,TIP_ID_U
+"REM WORKSPACETAB7",Query4,,8
+
+   Select *
+   from PLANIRANJE_VARIJANTA
+   Where plan_ciklus_id= 2013
+     and PLAN_PERIOD_ID = 1
+     and plan_trajanje_id=1
+     and broj_dok =1
+     and varijanta_id = 1
+"REM WORKSPACETAB8",Query8,,7
+Select
+d.*
+, 'Exec GenerisiStanjeZaliha('||org_deo||',sysdate,true)' gen
+from dokument d
+where godina = 2013
+  and vrsta_dok = 33
+  and status = 0
+"REM WORKSPACETAB9",Query9,,2
+Exec GenerisiStanjeZaliha(789,sysdate,true);
+Exec GenerisiStanjeZaliha(665,sysdate,true);
+"REM WORKSPACETAB10","vidi zag i var",,31
+Select
+'01 ZAG' tab,count(*)  uk
+
+from planiranje_zaglavlje
+where plan_tip_id		= 2
+  and plan_ciklus_id	= 2013
+  and plan_period_id	= 1
+  and plan_trajanje_id	= 1
+  and broj_dok			= 11
+UNION
+Select
+'02 VAR' tab,count(*) uk
+
+from planiranje_VARIJANTA
+where plan_tip_id		= 2
+  and plan_ciklus_id	= 2013
+  and plan_period_id	= 1
+  and plan_trajanje_id	= 1
+  and broj_dok			= 11
+  AND VARIJANTA_ID		= 1
+UNION
+Select
+'03 STAV' tab,count(*) uk
+
+from planiranje_STAVKA
+where plan_tip_id		= 2
+  and plan_ciklus_id	= 2013
+  and plan_period_id	= 1
+  and plan_trajanje_id	= 1
+  and broj_dok			= 11
+  AND VARIJANTA_ID		= 1
+"REM WORKSPACETAB11","brisi PLAN",,23
+DELETE planiranje_STAVKA
+where plan_tip_id		= 2
+  and plan_ciklus_id	= 2013
+  and plan_period_id	= 1
+  and plan_trajanje_id	= 1
+  and broj_dok			= 11
+  AND VARIJANTA_ID		= 1
+;
+
+DELETE planiranje_VARIJANTA
+where plan_tip_id		= 2
+  and plan_ciklus_id	= 2013
+  and plan_period_id	= 1
+  and plan_trajanje_id	= 1
+  and broj_dok			= 11
+  AND VARIJANTA_ID		= 1
+;
+DELETE planiranje_zaglavlje
+where plan_tip_id		= 2
+  and plan_ciklus_id	= 2013
+  and plan_period_id	= 1
+  and plan_trajanje_id	= 1
+  and broj_dok			= 11;
+"REM WORKSPACETAB12",Query15,,2
+Insert into report_tmp_pdf(c1, c2,    c3, c4,          c5, c6, c7, c8)
+                    values( 3,  2,  2013,  2, 'GODISNJI',  1,  1,  1);
+"REM WORKSPACETAB13",Query14,,17
+		  select
+			     PROIZVOD
+			   , BROJ_SASTAVNICE
+			   , SUM(nvl(KOLICINA,0)) KOLICINA
+
+		       , SUM(nvl(OPTIMALNA_ZALIHA,0)) OPTIMALNA_ZALIHA
+		       , SUM(nvl(PLANIRANA_PRODAJA,0)) PLANIRANA_PRODAJA
+
+		       , PPARTNER, NABAVNA_SIFRA
+		  from planiranje_stavka
+		  where (        plan_tip_id, plan_ciklus_id, plan_period_id, plan_trajanje_id, broj_dok, VARIJANTA_ID)
+		     in ( Select          C2,             C3,             C4,               C6,       C7,           C8
+		          From REPORT_TMP_PDF)
+		  GROUP BY PROIZVOD
+			 , BROJ_SASTAVNICE
+		         , PPARTNER, NABAVNA_SIFRA
+		  order by TO_NUMBER(PROIZVOD), BROJ_SASTAVNICE
+"REM WORKSPACETAB14","Cursor za stavke",,70
+		  Select
+--                 rownum rbr,
+                 PROIZVOD,BROJ_SASTAVNICE
+               , sum(KOLICINA) KOLICINA
+               , sum(OPTIMALNA_ZALIHA) OPTIMALNA_ZALIHA
+               , sum(PLANIRANA_PRODAJA) PLANIRANA_PRODAJA
+               , PPARTNER,NABAVNA_SIFRA
+		  From
+		  (
+			  select
+				     PROIZVOD
+				   , BROJ_SASTAVNICE
+
+				   , case when
+								(c2 = '2' and &p_new_plan_tip_id = 3)
+								or
+								(c2 = '2' and &p_new_plan_tip_id = 5)
+								or
+								(c2 = '4' and &p_new_plan_tip_id = 3)
+								or
+								(c2 = '4' and &p_new_plan_tip_id = 5)
+	                 then
+					      SUM(nvl(KOLICINA,0)+nvl(OPTIMALNA_ZALIHA,0))
+	  			     else
+					      SUM(nvl(KOLICINA,0))
+	  			     end													KOLICINA
+
+				   , case when
+								(c2 = '2' and &p_new_plan_tip_id = 3)
+								or
+								(c2 = '2' and &p_new_plan_tip_id = 5)
+								or
+								(c2 = '4' and &p_new_plan_tip_id = 3)
+								or
+								(c2 = '4' and &p_new_plan_tip_id = 5)
+	                 then
+					      0
+	  			     else
+					      SUM(nvl(OPTIMALNA_ZALIHA,0))
+	  			     end													OPTIMALNA_ZALIHA
+
+			       , SUM(nvl(PLANIRANA_PRODAJA,0)) PLANIRANA_PRODAJA
+
+			       , PPARTNER, NABAVNA_SIFRA
+			  from planiranje_zaglavlje pz
+			     , planiranje_stavka PS
+			     , REPORT_TMP_PDF R
+			  where
+			        pz.plan_tip_id= R.C2
+			    and pz.plan_ciklus_id= R.C3
+			    and pz.plan_period_id=R.C4
+			    and pz.plan_trajanje_id=R.C6
+			    and pz.broj_dok=R.C7
+
+
+			    and ps.plan_tip_id=pz.plan_tip_id
+			    and ps.plan_ciklus_id=pz.plan_ciklus_id
+			    and ps.plan_period_id=pz.plan_period_id
+			    and ps.plan_trajanje_id=pz.plan_trajanje_id
+			    and ps.broj_dok=pz.broj_dok
+			    and ps.VARIJANTA_ID=R.C8
+
+			  GROUP BY  c2,PROIZVOD
+				      , BROJ_SASTAVNICE
+			          , PPARTNER, NABAVNA_SIFRA
+		  )
+		  GROUP BY  PROIZVOD
+			      , BROJ_SASTAVNICE
+		          , PPARTNER, NABAVNA_SIFRA
+		  order by TO_NUMBER(PROIZVOD), BROJ_SASTAVNICE
+"REM WORKSPACETAB15",Query16,,1
+SELECT * FROM REPORT_TMP_PDF

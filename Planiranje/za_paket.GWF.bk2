@@ -1,0 +1,18 @@
+"REM WORKSPACETAB0",xml_export_table,,8
+select * from XML_EXPORT_TABLE
+--WHERE SESSION_ID = '007424680001'
+ORDER BY SESSION_ID;
+
+--
+--delete XML_EXPORT_TABLE;
+--
+--commit;
+"REM WORKSPACETAB1",plan_view,,1
+select * from planiranje_view
+"REM WORKSPACETAB2","pozicije linije u fajlu.sql",,6
+3651
+
+3681
+
+3729
+

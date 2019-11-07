@@ -1,0 +1,88 @@
+"REM WORKSPACETAB0",os_stavka.sql,,15
+SELECT   OS.rowid , OS.*
+/*
+       OS_DOKUMENT.VRSTA, OS_DOKUMENT.TIP , OS_DOKUMENT.DOKUMENT  ,
+       OS_DOKUMENT_STAVKA.STAVKA, OS_DOKUMENT_STAVKA.IDENT, OS_DOKUMENT_STAVKA.JM,
+       OS_DOKUMENT_STAVKA.KOLICINA , OS_DOKUMENT_STAVKA.PROMENA_NV, OS_DOKUMENT_STAVKA.PROMENA_IV,
+       OS_DOKUMENT_STAVKA.NABAVNA_VREDNOST, OS_DOKUMENT_STAVKA.OTPISANA_VREDNOST,
+       OS_DOKUMENT_STAVKA.SADASNJA_VREDNOST, OS_DOKUMENT_STAVKA.VREDNOST, OS_DOKUMENT_STAVKA.VREDNOST_U_VALUTI,
+       OS_DOKUMENT_STAVKA.OSTATAK_VREDN, OS_DOKUMENT_STAVKA.PROM_OSTATAK_VREDN, OS_DOKUMENT_STAVKA.REV_REZERVE
+*/
+
+From Os_Dokument_stavka os
+Where --OS.Godina = 2000                      And
+        OS.TIP = 701
+--      OS.Dokument IN ( 68  )                      And
+--      OS.ident > 315 and
+"REM WORKSPACETAB1",Os_Sred_datumi_vred.sql,,8
+Select Os_sredstvo.rowid , Os_sredstvo.IDENT, Os_sredstvo.DATUM_NABAVKE, Os_sredstvo.DATUM_AKTIVIRANJA,
+       Os_sredstvo.KOLICINA,Os_sredstvo.JM, Os_sredstvo.NABAVNA_VREDNOST,
+       Os_sredstvo.SADASNJA_VREDNOST, Os_sredstvo.OTPISANA_VREDNOST,
+       OS_AM_GRUPA.POCETNA_STOPA, Os_sredstvo.PODGRUPA
+ From Os_sredstvo , OS_AM_GRUPA
+Where Os_sredstvo.am_grupa = OS_AM_GRUPA.GRUPA
+--and ident in  (333 , 334 )
+Order by Ident
+"REM WORKSPACETAB2",os_dok_stavka.sql,,21
+SELECT   Os_Dokument.rowid , Os_Dokument.* , Os_Dokument_stavka.*
+/*
+       OS_DOKUMENT.VRSTA, OS_DOKUMENT.TIP , OS_DOKUMENT.DOKUMENT  ,
+       OS_DOKUMENT_STAVKA.STAVKA, OS_DOKUMENT_STAVKA.IDENT, OS_DOKUMENT_STAVKA.JM,
+       OS_DOKUMENT_STAVKA.KOLICINA , OS_DOKUMENT_STAVKA.PROMENA_NV, OS_DOKUMENT_STAVKA.PROMENA_IV,
+       OS_DOKUMENT_STAVKA.NABAVNA_VREDNOST, OS_DOKUMENT_STAVKA.OTPISANA_VREDNOST,
+       OS_DOKUMENT_STAVKA.SADASNJA_VREDNOST, OS_DOKUMENT_STAVKA.VREDNOST, OS_DOKUMENT_STAVKA.VREDNOST_U_VALUTI,
+       OS_DOKUMENT_STAVKA.OSTATAK_VREDN, OS_DOKUMENT_STAVKA.PROM_OSTATAK_VREDN, OS_DOKUMENT_STAVKA.REV_REZERVE
+*/
+
+From Os_Dokument , Os_Dokument_stavka
+Where --Os_Dokument.Godina = 2000                      And
+      OS_DOKUMENT.TIP  not in  (705)                          And
+--      os_dokument_stavka.ident = 330 and
+--      Os_Dokument.Dokument IN ( 68  )                      And
+-- Os_Dokument_Stavka.ident > 315 and
+      Os_Dokument.Godina (+) = Os_Dokument_Stavka.Godina   And
+      Os_Dokument.Vrsta  (+) = Os_Dokument_Stavka.Vrsta    And
+      Os_Dokument.Tip    (+) = Os_Dokument_Stavka.Tip      And
+      Os_Dokument.Dokument = Os_Dokument_Stavka.Dokument
+ORDER BY Os_Dokument.Dokument
+"REM WORKSPACETAB3",os_dok.sql,,21
+SELECT   Os_Dokument.rowid , Os_Dokument.* 
+/*
+       OS_DOKUMENT.VRSTA, OS_DOKUMENT.TIP , OS_DOKUMENT.DOKUMENT  ,
+       OS_DOKUMENT_STAVKA.STAVKA, OS_DOKUMENT_STAVKA.IDENT, OS_DOKUMENT_STAVKA.JM,
+       OS_DOKUMENT_STAVKA.KOLICINA , OS_DOKUMENT_STAVKA.PROMENA_NV, OS_DOKUMENT_STAVKA.PROMENA_IV,
+       OS_DOKUMENT_STAVKA.NABAVNA_VREDNOST, OS_DOKUMENT_STAVKA.OTPISANA_VREDNOST,
+       OS_DOKUMENT_STAVKA.SADASNJA_VREDNOST, OS_DOKUMENT_STAVKA.VREDNOST, OS_DOKUMENT_STAVKA.VREDNOST_U_VALUTI,
+       OS_DOKUMENT_STAVKA.OSTATAK_VREDN, OS_DOKUMENT_STAVKA.PROM_OSTATAK_VREDN, OS_DOKUMENT_STAVKA.REV_REZERVE
+*/
+from Os_Dokument 
+Where --Os_Dokument.Godina = 2000                      And
+      OS_DOKUMENT.TIP in  (705)                          And
+      os_dokument_stavka.ident = 143 and
+--      Os_Dokument.Dokument IN ( 68  )                      And
+-- Os_Dokument_Stavka.ident > 315 and
+      Os_Dokument.Godina (+) = Os_Dokument_Stavka.Godina   And
+      Os_Dokument.Vrsta  (+) = Os_Dokument_Stavka.Vrsta    And
+      Os_Dokument.Tip    (+) = Os_Dokument_Stavka.Tip      And
+      Os_Dokument.Dokument = Os_Dokument_Stavka.Dokument
+ORDER BY --Os_Dokument.Dokument
+Os_Dokument_stavka.ident
+"REM WORKSPACETAB4",OS_AMORTIZOVANO.sql,,15
+select st.*,sr.*
+from os_dokument_stavka st, os_sredstvo sr
+where
+sr.ident in (select distinct ident
+             from OS_DOKUMENT_STAVKA
+             where --dokument = 31 and
+                        tip = 705 and
+                        godina = 2006)
+and
+   	 	     sr.ident = st.ident and
+		    sr.status = 'A' and
+--         st.dokument  = 31 and
+	           st.tip = 705 and
+		    st.godina = 2006
+order by sr.ident
+"REM WORKSPACETAB5",Tip_dok_OS.sql,,2
+Select * from nacin_fakt
+Where tip > 699

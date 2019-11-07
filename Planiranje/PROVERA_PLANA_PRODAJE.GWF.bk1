@@ -1,0 +1,306 @@
+"REM WORKSPACETAB0",Query1,,2
+Select * from planiranje_mapiranje
+order by vrsta
+"REM WORKSPACETAB1",Query29,,4
+SELECT * FROM PRODAJNI_CENOVNIK P
+WHERE PROIZVOD IN (5671,5760,4427,4428,6678,6679,0)
+AND DATUM= (SELECT MAX(DATUM) FROM PRODAJNI_CENOVNIK P1
+            WHERE P1.PROIZVOD = P.PROIZVOD)
+"REM WORKSPACETAB2",Query6,,82
+select PROIZVOD,NAZIV_PRO,DOBAVLJAC,NABAVNA_SIFRA
+
+
+----, '1226',PROIZVOD,
+----, (select sifra from proizvod@medela where naziv = naziv_pro) nab_sif
+----, (select naziv from proizvod@medela where naziv = naziv_pro) nab_naz
+----, 0 CENA
+----, (select jed_mere from proizvod@medela where naziv = naziv_pro) JM_CENA
+----, 0 RABAT
+----, 0 VALUTA_PLACANJA
+
+from
+(
+	select ps.STAVKA_ID,ps.PROIZVOD, pproizvod.naziv(ps.proizvod) naziv_pro
+	     , k.dobavljac, k.nabavna_sifra
+	from Planiranje_stavka ps
+	, (
+--	    SELECT DOBAVLJAC, PROIZVOD, NABAVNA_SIFRA
+--	    FROM
+	    Select decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	                             DOBAVLJAC
+	         , PROIZVOD,NABAVNA_SIFRA
+	    From Katalog
+	    Where Proizvod in (Select Proizvod From Planiranje_stavka
+	                       Where PLAN_TIP_ID= &p_new_plan_tip_id
+	                         And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+	                         And PLAN_PERIOD_ID= &p_new_plan_period_id
+	                         And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+--	                         And BROJ_DOK IN ( &p_new_broj_dok)
+	                      )
+	      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+	    Group by decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	           , PROIZVOD,NABAVNA_SIFRA
+UNION
+
+	    Select decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	                             DOBAVLJAC
+	         , PROIZVOD,NABAVNA_SIFRA
+	    From Katalog_TRANZIT
+	    Where Proizvod in (Select Proizvod From Planiranje_stavka
+	                       Where PLAN_TIP_ID= &p_new_plan_tip_id
+	                         And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+	                         And PLAN_PERIOD_ID= &p_new_plan_period_id
+	                         And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+--	                         And BROJ_DOK IN ( &p_new_broj_dok)
+	                      )
+	      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+	    Group by decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	           , PROIZVOD,NABAVNA_SIFRA
+
+
+	  )   k
+
+	Where PLAN_TIP_ID= &p_new_plan_tip_id
+	  And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+	  And PLAN_PERIOD_ID= &p_new_plan_period_id
+	  And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+--	  And BROJ_DOK IN ( &p_new_broj_dok)
+
+	  And ps.proizvod=k.proizvod (+)
+)
+where dobavljac is null
+Group by PROIZVOD,NAZIV_PRO,DOBAVLJAC,NABAVNA_SIFRA
+Order by dobavljac, naziv_pro
+--
+--  And VARIJANTA_ID= &p_new_varijanta;
+"REM WORKSPACETAB3",Query21,,36
+select PS.PROIZVOD, K.DOBAVLJAC, NABAVNA_SIFRA
+from planiranje_stavka PS
+,(
+	    Select decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	                             DOBAVLJAC
+	         , PROIZVOD,NABAVNA_SIFRA
+	    From Katalog_TRANZIT
+	    Where Proizvod in (Select Proizvod From Planiranje_stavka
+	                       Where PLAN_TIP_ID= &p_new_plan_tip_id
+	                         And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+	                         And PLAN_PERIOD_ID= &p_new_plan_period_id
+	                         And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+	                         And BROJ_DOK IN ( &p_new_broj_dok)
+	                      )
+	      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+	    Group by decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	           , PROIZVOD,NABAVNA_SIFRA
+   )   k
+
+
+Where PLAN_TIP_ID= &p_new_plan_tip_id
+  And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+  And PLAN_PERIOD_ID= &p_new_plan_period_id
+  And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+  And BROJ_DOK IN ( &p_new_broj_dok)
+AND PS.PROIZVOD = K.PROIZVOD
+
+
+"REM WORKSPACETAB4",Query24,,22
+Select PS.*, DPD.*
+       , PS.KOLICINA - POLJE9 RAZLIKA
+From Planiranje_stavka ps
+, (select polje1, polje2, polje3, polje4, polje5, polje6, polje7, polje8,polje9,polje10, polje11
+        , polje79, polje80
+   from deja_pomocna_tab
+   where polje79='2000' and polje80<> '2000 Planiranje') dpd
+Where PLAN_TIP_ID= &p_new_plan_tip_id
+  And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+  And PLAN_PERIOD_ID= &p_new_plan_period_id
+  And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+  And BROJ_DOK IN ( &p_new_broj_dok)
+--  and proizvod in (5671,5760,  4427  )
+  and to_char(ps.PLAN_TIP_ID)= dpd.polje1
+  And to_char(ps.PLAN_CIKLUS_ID)= dpd.polje2
+  And to_char(ps.PLAN_PERIOD_ID)= dpd.polje3
+  And to_char(ps.PLAN_TRAJANJE_ID)= dpd.polje4
+  And to_char(ps.BROJ_DOK)= dpd.polje5
+  And to_char(ps.varijanta_id)= dpd.polje6
+
+  And ps.proizvod= dpd.polje8
+
+"REM WORKSPACETAB5",Query27,,25
+Select ps.*
+
+, (select polje9
+   from deja_pomocna_tab dpd
+   where polje79='2000' and polje80<> '2000 Planiranje'
+    and to_char(ps.PLAN_TIP_ID)= dpd.polje1
+    And to_char(ps.PLAN_CIKLUS_ID)= dpd.polje2
+    And to_char(ps.PLAN_PERIOD_ID)= dpd.polje3
+    And to_char(ps.PLAN_TRAJANJE_ID)= dpd.polje4
+    And to_char(ps.BROJ_DOK)= dpd.polje5
+    And to_char(ps.varijanta_id)= dpd.polje6
+    And ps.proizvod = polje8
+   ) kol
+
+From Planiranje_stavka ps
+
+Where PLAN_TIP_ID= &p_new_plan_tip_id
+  And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+  And PLAN_PERIOD_ID= &p_new_plan_period_id
+  And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+  and STAVKA_ID in (195,196)
+
+
+--  And BROJ_DOK IN ( &p_new_broj_dok)
+--  and proizvod in (5671,5760,  4427  )
+"REM WORKSPACETAB6",Query26,,15
+select rowid,
+polje1, polje2, polje3, polje4, polje5, polje6, polje7, polje8,polje9,polje10, polje11
+,polje79, polje80
+from deja_pomocna_tab
+
+where polje79='2000'
+--and polje8 not in (select proizvod from planiranje_stavka
+--
+--Where PLAN_TIP_ID= &p_new_plan_tip_id
+--  And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+--  And PLAN_PERIOD_ID= &p_new_plan_period_id
+--  And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+--)
+--and polje10='NULL'
+order by polje80, polje5, polje7
+"REM WORKSPACETAB7",Query28,,10
+select *
+ from planiranje_zaglavlje
+
+Where PLAN_TIP_ID= &p_new_plan_tip_id
+  And PLAN_CIKLUS_ID= &p_new_plan_ciklus_id
+  And PLAN_PERIOD_ID= &p_new_plan_period_id
+  And PLAN_TRAJANJE_ID= &p_new_plan_trajanje_id
+--  And broj_dok= 2
+--  and stavka_id in (195,196)
+--and proizvod in (0,6678,6679)
+"REM WORKSPACETAB8",Query25,,3
+Select *
+From Planiranje_stavka
+Where proizvod in ( 4428  )
+"REM WORKSPACETAB9",Query22,,16
+    Select decode(dobavljac
+                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+                           , dobavljac
+                 )
+                             DOBAVLJAC
+         , PROIZVOD,NABAVNA_SIFRA
+    From Katalog_tranzit
+    Where Proizvod = '4550'
+      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+    Group by decode(dobavljac
+                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+                           , dobavljac
+                 )
+           , PROIZVOD,NABAVNA_SIFRA;
+"REM WORKSPACETAB10",Query23,,2
+select * from katalog
+where proizvod = 11407
+"REM WORKSPACETAB11",Query20,,4
+select DOBAVLJAC,PROIZVOD,NABAVNA_SIFRA,NABAVNI_NAZIV,CENA,JM_CENA,RABAT
+--,VALUTA_PLACANJA
+from KATALOG
+where nabavna_sifra IN ('350170','350114')
+"REM WORKSPACETAB12",Query17,,16
+    Select decode(dobavljac
+                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+                           , dobavljac
+                 )
+                             DOBAVLJAC
+         , PROIZVOD,NABAVNA_SIFRA
+    From Katalog
+    Where Proizvod = '1'
+      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+    Group by decode(dobavljac
+                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+                           , dobavljac
+                 )
+           , PROIZVOD,NABAVNA_SIFRA;
+"REM WORKSPACETAB13",Query13,,36
+	    Select decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	                             DOBAVLJAC
+	         , PROIZVOD,NABAVNA_SIFRA
+	    From Katalog
+	    Where Proizvod in ('11575')
+	      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+	    Group by decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	           , PROIZVOD,NABAVNA_SIFRA
+UNION
+
+	    Select decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	                             DOBAVLJAC
+	         , PROIZVOD,NABAVNA_SIFRA
+	    From Katalog_TRANZIT
+	    Where Proizvod in ('11575')
+	      and dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+	    Group by decode(dobavljac
+	                           , '342',decode(length(nabavna_sifra),4,'965',dobavljac)
+	                           , '965',decode(length(nabavna_sifra),6,'342',dobavljac)
+	                           , dobavljac
+	                 )
+	           , PROIZVOD,NABAVNA_SIFRA
+
+
+"REM WORKSPACETAB14",Query10,,5
+Select DOBAVLJAC,PROIZVOD,NABAVNA_SIFRA from katalog
+where proizvod in ( &cProizvodi )
+union
+Select DOBAVLJAC,PROIZVOD,NABAVNA_SIFRA from katalog_tranzit
+where proizvod in ( &cProizvodi )
+"REM WORKSPACETAB15",Query19,,2
+Select * from katalog
+where proizvod in ( &cProizvodi )
+"REM WORKSPACETAB16",Query20,,2
+Select * from katalog_tranzit
+where proizvod in ( &cProizvodi )
+"REM WORKSPACETAB17",Query18,,0
+"REM WORKSPACETAB18",Query12,,2
+Select * from proizvod@vital
+where sifra='113102'
+"REM WORKSPACETAB19",Query11,,2
+select * from poslovni_partner
+where sifra = 18

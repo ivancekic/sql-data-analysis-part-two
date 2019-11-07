@@ -1,0 +1,110 @@
+"REM WORKSPACETAB0",Query1,,109
+select  
+          gotov_pr_sifra
+	    , gotov_pr_naziv
+	    , gotov_pr_jm
+-- Beograd 05.11.2010
+-- Izmenio Dejan Stojkovic zbog sortiranja u izvestajima: po posebnim grupama, pa nazivu artikala
+-- a na predlog-primedbu Zorana Zamahajeva i Mladena Murica
+	    , GOTOV_PR_POSGR
+---------------------------------------		    
+	    , sum(gotov_pr_plan_zeljena_kol) gotov_pr_plan_zeljena_kol_sum
+from (
+
+   select /*+ INDEX(planiranje_stavka planir_s_pk) */ --izdvajamo sve pojave gotovog proizvoda u kombinaciji sa sastavnicama za varijantu i plan pa ih gore sumiramo
+          plan_tip_id        --planiranje_zaglavlje - PK
+	    , plan_ciklus_id     --planiranje_zaglavlje - PK
+        , plan_period_id     --planiranje_zaglavlje - PK
+	    , plan_trajanje_id   --planiranje_zaglavlje - PK
+	    , broj_dok           --planiranje_zaglavlje - PK  
+	    
+	    , varijanta_id       --planiranje_varijanta - PK  ZAJEDNO SA OVIM GORE
+
+        , gotov_pr_sifra     --POSTO NE MOZE ISTI PROIZVOD DA SE UNESE VISE PUTA ONDA OVDE NE TREBA I PK IZ planiranje_stavka
+	    , gotov_pr_naziv
+	    , gotov_pr_jm
+		-- Beograd 05.11.2010
+		-- Izmenio Dejan Stojkovic zbog sortiranja u izvestajima: po posebnim grupama, pa nazivu artikala
+		-- a na predlog-primedbu Zorana Zamahajeva i Mladena Murica
+	    , GOTOV_PR_POSGR
+        -------------------------------------------------------------------------------------------------
+	    , gotov_pr_sastavnica
+
+	    , gotov_pr_plan_zeljena_kol
+
+	    , count(*)   
+     from planiranje_view
+	where      
+	
+	 --**********************************************************************************************************************************--
+	 --**********************************************************************************************************************************--
+      --tip, ciklus, period, trajanje-----------------------------------------------------------------------------------------------------   	
+          plan_tip_id         = c_tip_id
+      and plan_ciklus_id      = c_ciklus_id                               
+      and (--menjamo set pokupljenih podataka, tako da umesto planova u izabranom periodu uzima planove u periodu ispod ciji datum_od upada u period
+            (c_plan_zbir_podperioda is null     and plan_period_id  = c_period_id)   
+            or 
+            (c_plan_zbir_podperioda is not null and plan_period_id  = c_plan_zbir_podperioda)
+          )
+      and (--isto menjamo set pokupljenih podataka, tako da umesto planova u izabranom periodu uzima planove u periodu ispod ciji datum_od upada u period
+            (c_plan_zbir_podperioda is null and plan_trajanje_id = c_trajanje_id) 
+            or 
+            (c_plan_zbir_podperioda is not null and 
+              (select pt.datum_od from planiranje_trajanje pt where pt.plan_ciklus_id =c_ciklus_id    and pt.plan_period_id =c_plan_zbir_podperioda    and pt.trajanje_id =plan_trajanje_id)
+               between 
+              (select datum_od    from planiranje_trajanje    where plan_ciklus_id    =c_ciklus_id    and plan_period_id    =c_period_id               and trajanje_id    =c_trajanje_id) 
+               and 
+              (select datum_do    from planiranje_trajanje    where plan_ciklus_id    =c_ciklus_id    and plan_period_id    =c_period_id               and trajanje_id    =c_trajanje_id)                
+            )
+          ) 
+      --konkretan plan, i org.deo-----------------------------------------------------------------------------------------------------                                                                                                           
+      and (c_broj_dok   is null  or (c_broj_dok   is not null  and broj_dok    = c_broj_dok))                          
+      and (c_broj_dok1  is null  or (c_broj_dok1  is not null  and broj_dok1   = c_broj_dok1))
+      and (c_org_deo_id is null  or (c_org_deo_id is not null  and org_deo_id  = c_org_deo_id))    
+      --statusi-----------------------------------------------------------------------------------------------------   
+ 	  and (c_samo_overeni     = 0       or (c_samo_overeni     = 1          and  status_plan      = 1))         
+	  and (c_varijanta_id     is null   or (c_varijanta_id     is not null  and varijanta_id     = c_varijanta_id))    --da uzme konkretnu varijantu ako je zadata            
+	  and (c_status_varijanta is null   or (c_status_varijanta is not null  and status_varijanta = c_status_varijanta))--da uzme samo cekirane za sumarni izvestaj ok										     
+ 	  --**********************************************************************************************************************************--
+ 	  --**********************************************************************************************************************************--
+	 
+	  and  status_stavka       = 1 
+	  
+	group by
+          plan_tip_id
+	    , plan_ciklus_id
+        , plan_period_id
+	    , plan_trajanje_id
+	    , broj_dok
+	    , varijanta_id
+
+	    , gotov_pr_sifra
+	    , gotov_pr_naziv
+	    , gotov_pr_jm
+		-- Beograd 05.11.2010
+		-- Izmenio Dejan Stojkovic zbog sortiranja u izvestajima: po posebnim grupama, pa nazivu artikala
+		-- a na predlog-primedbu Zorana Zamahajeva i Mladena Murica
+	    , GOTOV_PR_POSGR
+		---------------------------------------	    	    
+
+	    , gotov_pr_sastavnica
+
+	    , gotov_pr_plan_zeljena_kol
+)
+	group by
+       --   plan_tip_id
+	   -- , plan_ciklus_id
+       -- , plan_period_id
+	   -- , plan_trajanje_id
+	   -- , broj_dok
+	   -- , varijanta_id
+
+	      gotov_pr_sifra
+	    , gotov_pr_naziv
+	    , gotov_pr_jm
+	    , GOTOV_PR_POSGR
+		-- Beograd 05.11.2010
+		-- Izmenio Dejan Stojkovic zbog sortiranja u izvestajima: po posebnim grupama, pa nazivu artikala
+		-- a na predlog-primedbu Zorana Zamahajeva i Mladena Murica
+		--order by gotov_pr_naziv;
+		order by GOTOV_PR_POSGR, gotov_pr_naziv;

@@ -1,0 +1,3 @@
+# Django application
+
+Django application

@@ -1,0 +1,143 @@
+"REM WORKSPACETAB0",Query1,,5
+--INSERT INTO PLANIRANJE_PROIZVOD_KORISNIK
+SELECT 'KVENERAV','TIP_PROIZVODA',TIP_PROIZVODA
+FROM proizvod
+where tip_proizvoda = 1
+GROUP BY TIP_PROIZVODA
+"REM WORKSPACETAB1",Query2,,2
+select ROWID, M.* from mapiranje m
+where MODUL = 'PLANIRANJE'
+"REM WORKSPACETAB2",Query6,,18
+select ORG_DEO, od.naziv, PROIZVOD, TIP_PROIZVODA, tp.naziv
+from dokument d, stavka_dok sd, PROIZVOD P, GRUPA_PR  GPR, TIP_PROIZVODA TP, organizacioni_deo od
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  AND TP.SIFRA    = P.TIP_PROIZVODA
+  and d.org_deo = od.id
+  -----------------------------
+  -- ostali uslovi
+  AND SD.PROIZVOD IN(  '145025','132250','132025','139001','139025','138001','138025','121025','121001','123001','123025','140000','140001',
+                       '140025','122001','122025','125025','125001','111001','136001','136025','127025','131025','119025','118025','107025',
+                       '105001','105025','108025','108000','114500','114020','115020','115035','101001','101025','101005','102001','104050',
+                       '124040','117020','103025','103200','103400','130050','135025','109000','109001','109025','109005','110000','110025',
+                       '112025','113030','116250','116020'
+                    )
+GROUP BY ORG_DEO, od.naziv, PROIZVOD, TIP_PROIZVODA, TP.SIFRA,tp.naziv
+ORDER BY ORG_DEO, PROIZVOD, TIP_PROIZVODA, TP.SIFRA
+"REM WORKSPACETAB3",Query7,,10
+select *
+from planiranje_zaglavlje
+where plan_tip_id    =3--p_plan_tip_id
+and plan_ciklus_id   =2011--p_plan_ciklus_id
+and plan_period_id   =4--p_plan_period_id
+and plan_trajanje_id =22--p_plan_trajanje_id
+--and broj_dok         =p_broj_dok
+
+
+--
+"REM WORKSPACETAB4",Query10,,3
+Select ROWID, M.* from mapiranje m
+where ul02 in ('KOVILJKAB','PAVLEK')
+ORDER BY UL03
+"REM WORKSPACETAB5",Query8,,5
+select * from PLANIRANJE_ZAGLAVLJE
+where plan_tip_id      =2--p_plan_tip_id
+  and plan_ciklus_id   =2011--p_plan_ciklus_id
+  and plan_period_id   =3--p_plan_period_id
+  and plan_trajanje_id =4--p_plan_trajanje_id
+"REM WORKSPACETAB6","!!! PAZI BRISE PLANIRANJE !!!",,23
+--DELETE PLANIRANJE_stavka
+--where plan_tip_id      =2--p_plan_tip_id
+--  and plan_ciklus_id   =2011--p_plan_ciklus_id
+--  and plan_period_id   =3--p_plan_period_id
+--  and plan_trajanje_id =4--p_plan_trajanje_id
+--  ;
+--COMMIT;
+--
+--DELETE PLANIRANJE_VARIJANTA
+--where plan_tip_id      =2--p_plan_tip_id
+--  and plan_ciklus_id   =2011--p_plan_ciklus_id
+--  and plan_period_id   =3--p_plan_period_id
+--  and plan_trajanje_id =4--p_plan_trajanje_id
+--  ;
+--COMMIT;
+--
+--DELETE PLANIRANJE_ZAGLAVLJE
+--where plan_tip_id      =2--p_plan_tip_id
+--  and plan_ciklus_id   =2011--p_plan_ciklus_id
+--  and plan_period_id   =3--p_plan_period_id
+--  and plan_trajanje_id =4--p_plan_trajanje_id
+--  ;
+--COMMIT;
+"REM WORKSPACETAB7",Query9,,5
+select * from PLANIRANJE_varijanta
+where plan_tip_id      =2--p_plan_tip_id
+  and plan_ciklus_id   =2011--p_plan_ciklus_id
+  and plan_period_id   =3--p_plan_period_id
+  and plan_trajanje_id =4--p_plan_trajanje_id
+"REM WORKSPACETAB8",Query10,,6
+select * from PLANIRANJE_stavka
+where plan_tip_id      =2--p_plan_tip_id
+  and plan_ciklus_id   =2011--p_plan_ciklus_id
+  and plan_period_id   =3--p_plan_period_id
+  and plan_trajanje_id =4--p_plan_trajanje_id
+--  and broj_dok = 2
+"REM WORKSPACETAB9",Query5,,56
+'145025',
+'132250',
+'132025',
+'139001',
+'139025',
+'138001',
+'138025',
+'121025',
+'121001',
+'123001',
+'123025',
+'140000',
+'140001',
+'140025',
+'122001',
+'122025',
+'125025',
+'125001',
+'111001',
+'136001',
+'136025',
+'127025',
+'131025',
+'119025',
+'118025',
+'107025',
+'105001',
+'105025',
+'108025',
+'108000',
+'114500',
+'114020',
+'115020',
+'115035',
+'101001',
+'101025',
+'101005',
+'102001',
+'104050',
+'124040',
+'117020',
+'103025',
+'103200',
+'103400',
+'130050',
+'135025',
+'109000',
+'109001',
+'109025',
+'109005',
+'110000',
+'110025',
+'112025',
+'113030',
+'116250',
+'116020',

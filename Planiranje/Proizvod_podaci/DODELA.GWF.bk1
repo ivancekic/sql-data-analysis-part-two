@@ -1,0 +1,182 @@
+"REM WORKSPACETAB0","gledaj proizvode po tipovima",,2
+Select * from proizvod
+where tip_proizvoda ='2'
+"REM WORKSPACETAB1","tipovi proizvoda",,61
+-- Rubin - Zlatko Markovic				ok
+-- Ratar - Predrag Pecenovic            OK
+-- Pekara -
+-- Monus - Nikola Brkic
+-- Albus - Ljubisa Radovanovic			ok
+-- Vital - Dragan Kuga
+-- Medela - Veljko Kovacevic
+-- Sunce - Aleksandar Kurdjumov
+
+
+
+select
+
+S.*
+, 'VELJKOK' , 'TIP_PROIZVODA', SIFRA
+from tip_proizvoda S
+
+---- rubin za odrzavanje
+--where sifra not in (0,1,2,4, 9,13,14
+--
+--,8	--ev amb
+--,81	--amb
+--,11	--repro
+--
+--)
+
+
+---- ratar za odrzavanje
+--where sifra not in (1,2,3, 4,         9,14,17,16,15,19,20,8	--ev amb
+--
+--)
+
+---- ALBUS za odrzavanje
+--where sifra not in (13,8	--ev amb
+--,'01','02'
+--
+--)
+
+
+------ VITAL za odrzavanje
+--where sifra not in (13,8	--ev amb
+--,'01','02','05','10'
+--
+--)
+
+---- MEDELA za odrzavanje
+where sifra not in (    '9','1','2','6','4','8'	--ev amb
+                     , '13','15','3','10','81'
+--,'9','2','17','11','16'
+--
+)
+
+
+------ sunce za odrzavanje
+--where sifra not in ('1','8'	--ev amb
+--,'9','2','17','11','16'
+--
+--)
+
+
+--order by to_number(sifra)
+"REM WORKSPACETAB2",plan_tip_pro_kor,,21
+INSERT INTO PLANIRANJE_PROIZVOD_KORISNIK
+(
+
+select
+--P.*
+--
+'CNIVESK',VRSTA,SIFRA
+--, PTIPPROIZVODA.NAZIV(SIFRA) TIP_NAZ
+
+
+
+
+ from PLANIRANJE_PROIZVOD_KORISNIK P
+where korisnik IN (
+                    'PREDRAGPE'
+--                  , 'PILIP'
+
+                  )
+)
+---ORDER BY KORISNIK
+
+"REM WORKSPACETAB3",Query13,,2
+sELECT * FROM KORISNIK
+WHERE USERNAME='CNIVESK'
+"REM WORKSPACETAB4",Query12,,1
+CNIVESK
+"REM WORKSPACETAB5","!REVOKE_NEW( Oduzimanje podataka ).sql",,24
+Select DBRP.*
+     ,  'GRANT ' || DBRP.GRANTED_ROLE ||' TO itadmin ; /'
+     ,  'GRANT ' || DBRP.GRANTED_ROLE ||' TO VELJKOK ; /'
+     ,  'REVOKE ' || DBRP.GRANTED_ROLE ||' FROM IIS_G_ADMIN; /'
+From DBA_ROLE_PRIVS DBRP
+WHERE
+--GRANTEE IN (upper('IIS_DOKUMENT_SISTEMSKI_DATUM'))--,'ALEKSANDAR')
+--and
+--instr(GRANTED_ROLE,'RADNICI') > 0
+
+--GRANTED_ROLE LIKE '%PLAN%'
+--GRANTED_ROLE IN ('IIS_F_RADNICI','IIS_R_RADNICI')
+--AND
+GRANTEE IN (upper('VELJKOK'))--,'ALEKSANDAR')
+--GRANTEE NOT IN ('IIS_F_SVE','SYSTEM')--,'ALEKSANDAR')
+ORDER BY
+--GRANTEE,
+GRANTED_ROLE
+--IIS_F_PLANIRANJE_PRODAJE_MISP
+
+--ZORANB
+--SNEZAM
+--DEJANS
+--MARIJADJ
+"REM WORKSPACETAB6",Query5,,2
+GRANT IIS_F_PROIZVOD_PODACI TO OALEKSANDARK ; /
+GRANT IIS_G_PLANIRANJE_GREAD TO OALEKSANDARK ; /
+"REM WORKSPACETAB7","pazi INS",,35
+--INSERT INTO PROIZVOD_PODACI
+
+--(PROIZVOD,KOL_MIN,KOL_MAX,KOL_OPT,DANA_NABAVKA,VALUTA,PLANSKA_CENA,VALUTA_PLACANJA,ROK,KONTROLA,KOL_SIGNALNA,TIP_PROIZVODA,VAZI_OD,K_RIZIKA
+--,ZAD_NABAVNA_CENA_DOK
+
+
+)
+
+SELECT
+
+--*
+
+SIFRA PROIZVOD,
+0 KOL_MIN,
+0 KOL_MAX,
+0 KOL_OPT,
+0 DANA_NABAVKA,
+'YUD' VALUTA,
+0 PLANSKA_CENA,
+0 VALUTA_PLACANJA,
+NULL ROK, 0 KONTROLA,0 KOL_SIGNALNA,
+TIP_PROIZVODA,
+TO_DATE('05.12.2012','DD.MM.YYYY') VAZI_OD,
+0 K_RIZIKA
+--,
+--NULL ZAD_NABAVNA_CENA_DOK
+
+FROM PROIZVOD
+--WHERE SIFRA NOT IN (SELECT )
+
+WHERE TIP_PROIZVODA IN (
+
+'11','12','5'
+)
+  AND SIFRA NOT IN (SELECT PROIZVOD FROM PROIZVOD_PODACI)
+"REM WORKSPACETAB8",Query9,,14
+Select
+pp.rowid,
+pp.*
+     , (select tip_proizvoda from proizvod where sifra = pp.proizvod ) ttt
+
+from PROIZVOD_PODACI pp
+where
+vazi_od='05.12.2012 00:00:00'
+-- kol_signalna in
+--
+--(
+--'11','12','5'
+--
+--)
+"REM WORKSPACETAB9",Query11,,3
+update PROIZVOD_PODACI pp
+
+
+"REM WORKSPACETAB10",Query10,,2
+Select * from proizvod
+where sifra = 11459
+"REM WORKSPACETAB11",Query8,,1
+DESC PROIZVOD_PODACI
+"REM WORKSPACETAB12",Query7,,1
+SELECT * FROM PROIZVOD_PODACI

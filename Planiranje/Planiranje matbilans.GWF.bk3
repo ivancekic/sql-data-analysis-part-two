@@ -1,0 +1,7 @@
+"REM WORKSPACETAB0","Datum trajanja do",,6
+select (trunc(sysdate) - trunc(datum_do)) datum
+--  into g_razlika_datuma
+  from planiranje_trajanje
+ where plan_ciklus_id = 2010
+   and plan_period_id = 3
+   and trajanje_id    = 11;

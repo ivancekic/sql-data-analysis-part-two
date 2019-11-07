@@ -1,0 +1,321 @@
+"REM WORKSPACETAB0",xml_export_table,,8
+select * from XML_EXPORT_TABLE
+--WHERE SESSION_ID = '007424680001'
+ORDER BY SESSION_ID;
+
+-- 00953B510001
+--delete XML_EXPORT_TABLE;
+--
+--commit;
+"REM WORKSPACETAB1",Query41,,2
+GRANT EXECUTE ON MONUS.PLANIRANJE_MATBILANS_DEJA TO EXE
+/
+"REM WORKSPACETAB2","prov stanja",,69
+	Select sum(stanje_na) stanje_na
+	     , sum(stanje) stanje
+
+	From
+	(
+		Select d1.ORG_DEO,to_number(to_char(sysdate,'yyyy')) god, sd1.PROIZVOD
+			 , Sum( Round( Decode( d1.Vrsta_Dok || d1.Tip_Dok,
+			                      '314', sd1.Kolicina,
+			                      '414', sd1.Kolicina,
+			            sd1.Realizovano ) * sd1.Faktor * sd1.K_Robe, 5 ) )  stanje_na
+			 , stanje
+		From
+		(
+			select d.org_Deo, sd.proizvod
+			     , NVL(case when max(ps_dok.datum_dok) <=  &dDatum then
+						  		to_date('01.01.'||to_char( &dDatum,'yyyy'),'dd.mm.yyyy')
+				       else max(ps_dok.datum_dok)
+			           end
+			           ,
+--			           to_date('01.01.2010','dd.mm.yyyy')
+					   to_date('01.01.'||to_char( &dDatum,'yyyy'),'dd.mm.yyyy')
+			           ) dat_ps
+                 , z.stanje stanje
+			From dokument d, stavka_dok sd
+				, (select * from dokument where vrsta_dok = '21') ps_dok
+				, (Select z.org_deo, z.proizvod, stanje From zalihe z
+			       Where z.org_deo
+				    in (Select pom.MAGACIN_ID
+						From PLANIRANJE_VIEW plv, PLANIRANJE_ORG_DEO_MAGACIN pom
+						Where PLAN_TIP_ID      = 3
+					      and PLAN_CIKLUS_ID   = 2010
+						  and PLAN_PERIOD_ID   = 3
+						  and PLAN_TRAJANJE_ID = &MESEC
+						  and plv.ORG_DEO_ID   = pom.ORG_DEO_ID
+						  and MATERIJAL_SIFRA  =  &proizvod
+				       )
+		             and z.proizvod = &proizvod
+			      ) z
+
+			Where d.status > 0
+			  and d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+			  and k_robe != '0'
+			  and d.org_deo = ps_dok.org_deo (+)
+			  and sd.proizvod =  &proizvod
+			  and sd.proizvod = z.proizvod
+			  and d.org_deo   = z.org_deo
+			Group by d.org_Deo, sd.proizvod, z.stanje
+		) pod
+		, Dokument d1, stavka_Dok sd1
+		Where d1.org_Deo = pod.Org_Deo
+		  and d1.datum_dok between '01.01.2010' and  &dDatum
+		  and d1.godina = sd1.godina and d1.vrsta_dok = sd1.vrsta_dok and d1.broj_dok = sd1.broj_dok
+		  and sd1.k_robe <> 0
+		  and d1.status > 0
+		  and sd1.proizvod = pod.proizvod
+		  and sd1.proizvod =  &proizvod
+		  and d1.org_deo
+			    in (Select pom.MAGACIN_ID
+					From PLANIRANJE_VIEW plv, PLANIRANJE_ORG_DEO_MAGACIN pom
+					Where PLAN_TIP_ID      = 3
+ 			          and PLAN_CIKLUS_ID   = 2010
+					  and PLAN_PERIOD_ID   = 3
+					  and PLAN_TRAJANJE_ID = &MESEC
+					  and plv.ORG_DEO_ID   = pom.ORG_DEO_ID
+					  and MATERIJAL_SIFRA  =  &proizvod
+--					  and GOTOV_PR_SIFRA   =  &proizvod
+			       )
+		Group by d1.org_Deo, sd1.proizvod, stanje
+	);
+"REM WORKSPACETAB3","zad nab cena",,22
+  select sd2.cena1 from dokument d2, stavka_dok	sd2
+   where d2.vrsta_dok = '3' and d2.tip_dok   = '10' and d2.status    in ('1','3')
+     and d2.datum_dok =
+       (
+         select max(d.datum_dok) from dokument d, stavka_dok sd
+          where d.vrsta_dok = '3' and d.tip_dok   = '10' and d.status    in ('1','3')
+
+--		      and (d.broj_dok,d.vrsta_dok,d.godina)
+--        		  not in (select vd.broj_dok,vd.vrsta_dok,vd.godina
+--                		  from vezni_dok vd
+--		                  where vd.za_vrsta_dok = '3'
+--        		         )
+            and d.broj_dok  = sd.broj_dok and d.vrsta_dok = sd.vrsta_dok and d.godina    = sd.godina
+            and sd.vrsta_dok = '3' and sd.proizvod = &PRO
+        )
+
+    and (d2.broj_dok,d2.vrsta_dok,d2.godina)
+        not in (select vd2.broj_dok,vd2.vrsta_dok,vd2.godina from vezni_dok vd2
+                where vd2.za_vrsta_dok = '3'
+               )
+     and d2.broj_dok  = sd2.broj_dok and d2.vrsta_dok = sd2.vrsta_dok and d2.godina    = sd2.godina
+     and sd2.vrsta_dok = '3' and sd2.proizvod = &PRO
+"REM WORKSPACETAB4",Query23,,4
+Select *
+from zalihe z
+Where z.proizvod = &proizvod
+
+"REM WORKSPACETAB5","DELETE XML_exp_t",,10
+select * from XML_EXPORT_TABLE
+--WHERE SESSION_ID = '007424680001'
+ORDER BY SESSION_ID;
+
+-- 00953B510001
+delete XML_EXPORT_TABLE
+;
+--WHERE SESSION_ID = '00829E440001';
+
+commit;
+"REM WORKSPACETAB6",plan_view,,6
+Select *
+From PLANIRANJE_VIEW plv
+Where PLAN_TIP_ID      = 3
+  and PLAN_CIKLUS_ID   = 2010
+  and PLAN_PERIOD_ID   = 3
+  and PLAN_TRAJANJE_ID = 11
+"REM WORKSPACETAB7","PExcel din upit",,43
+DECLARE
+	  p_reportname VARCHAR2(1000) := 'PROBA.exportexcel';
+	  cUser VARCHAR2(1000) := 'MLADENM';
+      cur number;
+      n number;
+      cretval number;
+      sql_string  varchar2(2000);
+      l_row number;
+begin
+
+       cretval := 0;
+       cur := dbms_sql.open_cursor;
+
+--        sql_string := 'select '||p_reportname||'.exportexcel from dual';
+--        sql_string := 'select '||nvl(p_reportname,'NIJEDEF')||'.exportexcel from dual';
+--        sql_string := 'select '||
+--                      nvl(p_reportname,'NIJEDEF')||
+--                      ' from dual';
+
+         SQL_String := ' Select Role From '||cUser||
+                     '.Frm45_Enabled_Roles Where Role = '||
+                     '''IIS_DOKUMENT_SISTEMSKI_DATUM''';
+
+
+
+        dbms_sql.parse( cur, sql_string, 2 );
+
+        dbms_sql.define_column( cur, 1,  cretval );
+        n := dbms_sql.execute( cur );
+
+	    l_row := 1;
+	    loop
+	      if dbms_sql.fetch_rows(cur) = 0 then
+	        exit;
+	      else
+	         dbms_sql.column_value( cur, 1, cretval );
+	         l_row := l_row + 1;
+	      end if;
+	    end loop;
+	    dbms_sql.close_cursor(cur);
+
+
+END;
+"REM WORKSPACETAB8","PExcel din upit ver. 1",,53
+Declare
+      p_reportname Varchar2(200) :='Planiranje_materijalni_bilans';
+
+
+      cRezultat VarChar2 (1000) ;
+      curRola INTEGER;
+      ignore INTEGER;
+      SQL_String VarChar2(1000);
+
+      cretval number;
+
+Begin
+         curRola := dbms_sql.open_cursor;
+
+		if 	p_reportname is not null then
+	        sql_string := 'select '''||p_reportname||'.excel'''||' from dual';
+        else
+	        sql_string := 'select '||'''FAJL_BEZ_IMENA.excel'''||' from dual';
+        end If;
+
+
+Dbms_output.put_line('Upit je:: '||SQL_String);
+
+         dbms_sql.parse(curRola, SQL_String, DBMS_SQL.native);
+
+         -- postavi
+         dbms_sql.define_column(curRola, 1,cRezultat,1000);
+
+         Ignore := DBMS_SQL.EXECUTE(curRola);
+
+            If dbms_sql.fetch_rows(curRola)>0 then
+
+               dbms_sql.column_value(curRola, 1,cRezultat);
+            End If;
+
+            -- zatvori kursor
+         DBMS_SQL.CLOSE_CURSOR(curRola);
+
+         If cRezultat Is Null Then
+            cretval := 0;
+         Else
+            cretval := 1;
+         End If;
+Dbms_output.put_line('rezultat je:: '|| cretval) ; 
+
+--	Return(cRaetVal);
+exception
+   when others then
+       dbms_sql.close_cursor(curRola);
+		Dbms_output.put_line('excep rez je :: 0');
+--	Return 0;
+--
+End;
+"REM WORKSPACETAB9","za PExcel",,33
+Declare
+      p_reportname Varchar2(200) :='Planiranje_materijalni_bilans';
+
+      cRezultat VarChar2 (1000) ;
+      SQL_String VarChar2(1000);
+
+      cretval number;
+
+Begin
+		if 	p_reportname is not null then
+	        sql_string := 'select '''||p_reportname||'.excel'''||' from dual';
+        else
+	        sql_string := 'select '||'''FAJL_BEZ_IMENA.excel'''||' from dual';
+        end If;
+
+Dbms_output.put_line('Upit je:: '||SQL_String);
+
+		execute immediate sql_string into cRezultat;
+
+         If cRezultat Is Null Then
+            cretval := 0;
+         Else
+            cretval := 1;
+         End If;
+Dbms_output.put_line('rezultat je:: '|| cretval) ;
+
+--	Return(cRaetVal);
+exception
+   when others then
+		Dbms_output.put_line('excep rez je :: 0');
+--	Return 0;
+--
+End;
+"REM WORKSPACETAB10","PExcel F_JA",,43
+Declare
+
+      p_reportname Varchar2(200) :='Planiranje_materijalni_bilans';
+
+      cur number;
+      n number;
+      cretval number;
+      sql_string  varchar2(2000);
+      l_row number;
+begin
+
+       cretval := 0;
+       cur := dbms_sql.open_cursor;
+
+		if 	p_reportname is not null then
+	        sql_string := 'select '''||p_reportname||'.excel'''||' from dual';
+        else
+	        sql_string := 'select '||'''FAJL_BEZ_IMENA.excel'''||' from dual';
+        end If;
+
+        dbms_sql.parse( cur, sql_string, 2 );
+
+        dbms_sql.define_column( cur, 1,  cretval );
+        n := dbms_sql.execute( cur );
+
+	    l_row := 1;
+	    loop
+	      if dbms_sql.fetch_rows(cur) = 0 then
+	        exit;
+	      else
+	         dbms_sql.column_value( cur, 1, cretval );
+	         l_row := l_row + 1;
+	      end if;
+	    end loop;
+	    dbms_sql.close_cursor(cur);
+
+		Dbms_output.put_line('rez je:: '||cretval);
+
+exception
+   when others then
+       dbms_sql.close_cursor(cur);
+		Dbms_output.put_line('rez je exception:: ');
+End;
+"REM WORKSPACETAB11",Query44,,8
+--ORA-00905: missing keyword
+
+Select PExcel.ExportExcel('Planiranje_materijalni_bilans') naz_reporta
+from dual
+
+
+
+
+"REM WORKSPACETAB12",Query45,,4
+begin
+:X0 := PEXCEL.EXPORTEXCEL('Proba je ');
+dbms_output.put_line(:X0);
+end;
+"REM WORKSPACETAB13",Query43,,2
+Select ascii ('.')
+from dual

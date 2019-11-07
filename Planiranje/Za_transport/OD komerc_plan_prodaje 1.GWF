@@ -1,0 +1,1741 @@
+"REM WORKSPACETAB0","Za plan otpreme transp",,122
+Select
+
+       kon.DATUM
+     , kon.FIRMA,kon.KRATAK_NAZIV
+     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+     , null		PR_POS_GR
+--     , kon.pr_pos_gr
+     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+     , SUM(kon.KOLICINA)					KOLICINA
+     , CEIL(SUM(kon.PAL))					PAL
+     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+From
+(
+       SELECT
+              k.datum
+            , KUPAC_SIFRA
+            , pp.naziv naziv_kupca
+            , KUPAC_MI
+            , mi.NAZIV_KORISNIKA
+
+            , p.POSEBNA_GRUPA pr_pos_gr
+            , k.PROIZVOD
+            , SUM(k.KOLICINA) KOLICINA
+
+            , SUM(
+                  case when nvl(a.za_kolicinu,0)= 0 then
+                            0
+                       else
+                            (k.kolicina/a.za_kolicinu)
+                  End
+                 )															PAL
+
+            , SUM(
+                  case when nvl(pak.za_kolicinu,0)= 0 then
+                            0
+                       else
+                            (k.kolicina/pak.za_kolicinu)
+                  End
+                 )															PAK_UK
+
+            , SUM(
+                  case when nvl(pak.za_kolicinu,0)= 0 then
+                            0
+                       else
+                            (k.kolicina/pak.za_kolicinu*pak.neto)
+                  End
+                 )															PAK_NETO_UK
+
+            , SUM(
+                  case when nvl(pak.za_kolicinu,0)= 0 then
+                            0
+                       else
+                            (k.kolicina/pak.za_kolicinu*pak.bruto)
+                  End
+                 )															PAK_BRUTO_UK
+
+            , kv.firma
+            , kv.kratak_naziv
+       From komerc_plan_prodaje@konsolid k
+          , poslovni_partner pp, mesto_isporuke mi
+          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+             From katalog_view K, firme f
+             Where f.id=k.firma
+             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+            ) kv
+          , proizvod p
+          , (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+       WHERE
+             K.DATUM BETWEEN &Datum_od AND &Datum_do
+         and pp.sifra = k.KUPAC_SIFRA
+         and mi.ppartner=pp.sifra
+         and mi.sifra_mesta=k.KUPAC_MI
+
+         and k.proizvod=a.proizvod (+)
+         and k.proizvod=pak.proizvod (+)
+         and k.proizvod=kv.proizvod (+)
+
+         and p.sifra = k.proizvod
+    GROUP BY
+             k.datum
+           , k.KUPAC_SIFRA, k.KUPAC_MI
+           , p.POSEBNA_GRUPA
+           , k.PROIZVOD
+           , pp.naziv
+           , mi.NAZIV_KORISNIKA
+           , kv.firma
+           , kv.kratak_naziv
+    ORDER BY
+             k.datum
+           , kv.kratak_naziv
+           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+           , p.POSEBNA_GRUPA
+           , to_number(k.PROIZVOD)
+) kon
+, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+where
+--      kon.firma     = pgg.firma (+)
+--  and
+      kon.pr_pos_gr = pgg.grupa (+)
+Group BY kon.DATUM
+       , kon.FIRMA,kon.KRATAK_NAZIV
+       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+       , pgg.grupni_naziv
+
+ORDER BY
+         kon.datum
+       , kon.kratak_naziv
+       , to_number(kon.KUPAC_SIFRA), to_number(kon.KUPAC_MI)
+--       , kon.pr_pos_gr
+--       , to_number(kon.PROIZVOD)
+--) P
+--, POSEBNA_GRUPA PG
+--
+--WHERE PG.GRUPA=P.pr_pos_gr
+--
+--Group by pr_pos_gr, PG.NAZIV, GRUPNI_NAZIV
+--
+--order by GRUPNI_NAZIV, pr_pos_gr, PG.NAZIV
+"REM WORKSPACETAB1","Za plan otpreme transp Ver. 1",,289
+SELECT DATUM,FIRMA,KRATAK_NAZIV,KUPAC_SIFRA,NAZIV_KUPCA,KUPAC_MI,NAZIV_KORISNIKA
+     , mesto_krace_br, polje1 mesto_krace
+     , ADRESA,ADRESA2
+     , PR_POS_GR,GRUPNI_NAZIV,KOLICINA,PAL,PAK_UK,PAK_NETO_UK,PAK_BRUTO_UK
+FROM
+(
+	Select
+
+	       kon.DATUM
+	     , kon.FIRMA,kon.KRATAK_NAZIV
+	     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	     , case when kon.polje1 is null then
+	                 0
+	       else
+	                 1
+	       end                mesto_krace_br
+	     , nvl(kon.polje1,'NIJE DEF.') polje1
+	     , kon.adresa, kon.adresa2
+	     , kon.pr_pos_gr		PR_POS_GR
+	     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+
+	     , round(SUM(kon.KOLICINA),3)			KOLICINA
+	     , CEIL(SUM(kon.PAL))					PAL
+	     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+	     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+	     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+	From
+	(
+	       SELECT
+	              k.datum
+	            , KUPAC_SIFRA
+	            , pp.naziv naziv_kupca
+	            , KUPAC_MI
+	            , mi.NAZIV_KORISNIKA
+	            , mi.adresa, mi.adresa2, mi.polje1
+
+	            , p.POSEBNA_GRUPA pr_pos_gr
+	            , k.PROIZVOD
+	            , SUM(k.KOLICINA) KOLICINA
+
+	            , SUM(
+	                  case when nvl(a.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/a.za_kolicinu)
+	                  End
+	                 )															PAL
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu)
+	                  End
+	                 )															PAK_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.neto)
+	                  End
+	                 )															PAK_NETO_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.bruto)
+	                  End
+	                 )															PAK_BRUTO_UK
+
+	            , kv.firma
+	            , kv.kratak_naziv
+	       From komerc_plan_prodaje@konsolid k
+	          , poslovni_partner pp, mesto_isporuke mi
+	          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+	          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+	             From katalog_view K, firme f
+	             Where f.id=k.firma
+	             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+	            ) kv
+	          , proizvod p
+	          , (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+	       WHERE
+	             K.DATUM BETWEEN &Datum_od AND &Datum_do
+	         and pp.sifra = k.KUPAC_SIFRA
+	         and mi.ppartner=pp.sifra
+	         and mi.sifra_mesta=k.KUPAC_MI
+
+	         and k.proizvod=a.proizvod (+)
+	         and k.proizvod=pak.proizvod (+)
+	         and k.proizvod=kv.proizvod (+)
+
+	         and p.sifra = k.proizvod
+
+	    GROUP BY
+	             k.datum
+	           , k.KUPAC_SIFRA, k.KUPAC_MI
+	           , p.POSEBNA_GRUPA
+	           , k.PROIZVOD
+	           , pp.naziv
+	           , mi.NAZIV_KORISNIKA
+	           , mi.adresa, mi.adresa2, mi.polje1
+	           , kv.firma
+	           , kv.kratak_naziv
+
+	    ORDER BY
+	             k.datum
+	           , kv.kratak_naziv
+	           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+	           , p.POSEBNA_GRUPA
+	           , to_number(k.PROIZVOD)
+	) kon
+	, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+
+	where
+	      kon.pr_pos_gr = pgg.grupa (+)
+
+	  ---------------------------------
+	  AND pgg.grupni_naziv IS NULL
+	  ---------------------------------
+
+	Group BY kon.DATUM
+	       , kon.FIRMA,kon.KRATAK_NAZIV
+	       , kon.pr_pos_gr
+	       , pgg.grupni_naziv
+	       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	       , kon.adresa, kon.adresa2, kon.polje1
+
+	UNION
+
+	Select
+
+	       kon.DATUM
+	     , kon.FIRMA,kon.KRATAK_NAZIV
+	     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	     , case when kon.polje1 is null then
+	                 0
+	       else
+	                 1
+	       end                mesto_krace_br
+         , nvl(kon.polje1,'NIJE DEF.') polje1
+	     , kon.adresa, kon.adresa2
+	     , null		PR_POS_GR
+	     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+
+	     , round(SUM(kon.KOLICINA),3)			KOLICINA
+	     , CEIL(SUM(kon.PAL))					PAL
+	     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+	     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+	     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+	From
+	(
+	       SELECT
+	              k.datum
+	            , KUPAC_SIFRA
+	            , pp.naziv naziv_kupca
+	            , KUPAC_MI
+	            , mi.NAZIV_KORISNIKA
+	            , mi.adresa, mi.adresa2, mi.polje1
+
+	            , p.POSEBNA_GRUPA pr_pos_gr
+	            , k.PROIZVOD
+	            , SUM(k.KOLICINA) KOLICINA
+
+	            , SUM(
+	                  case when nvl(a.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/a.za_kolicinu)
+	                  End
+	                 )															PAL
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu)
+	                  End
+	                 )															PAK_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.neto)
+	                  End
+	                 )															PAK_NETO_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.bruto)
+	                  End
+	                 )															PAK_BRUTO_UK
+
+	            , kv.firma
+	            , kv.kratak_naziv
+	       From komerc_plan_prodaje@konsolid k
+	          , poslovni_partner pp, mesto_isporuke mi
+	          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+	          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+	             From katalog_view K, firme f
+	             Where f.id=k.firma
+	             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+	            ) kv
+	          , proizvod p
+	          , (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+	       WHERE
+	             K.DATUM BETWEEN &Datum_od AND &Datum_do
+	         and pp.sifra = k.KUPAC_SIFRA
+	         and mi.ppartner=pp.sifra
+	         and mi.sifra_mesta=k.KUPAC_MI
+
+	         and k.proizvod=a.proizvod (+)
+	         and k.proizvod=pak.proizvod (+)
+	         and k.proizvod=kv.proizvod (+)
+
+	         and p.sifra = k.proizvod
+
+
+	    GROUP BY
+	             k.datum
+	           , k.KUPAC_SIFRA, k.KUPAC_MI
+	           , k.PROIZVOD
+	           , pp.naziv
+	           , mi.NAZIV_KORISNIKA
+	           , mi.adresa, mi.adresa2, mi.polje1
+	           , kv.firma
+	           , kv.kratak_naziv
+
+	    ORDER BY
+	             k.datum
+	           , kv.kratak_naziv
+	           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+	           , p.POSEBNA_GRUPA
+	           , to_number(k.PROIZVOD)
+	) kon
+	, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+
+	where
+	      kon.pr_pos_gr = pgg.grupa (+)
+	  ---------------------------------
+	  AND pgg.grupni_naziv IS NOT NULL
+	  ---------------------------------
+	Group BY kon.DATUM
+	       , kon.FIRMA,kon.KRATAK_NAZIV
+	       , pgg.grupni_naziv
+	       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	       , kon.adresa, kon.adresa2, kon.polje1
+)
+,
+(
+   Select sdp.proizvod
+			             , -1 * sum(case when dp.vrsta_Dok in( '11','12','13','31') AND dp.tip_dok not in (23,221,222,238,225)AND
+			                             dp.datum_dok BETWEEN &Datum_od AND &Datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+			                   else
+			                             null
+			                   end
+   From dokument dp, stavka_dok sdp
+   Where 
+         dp.broj_dok>0
+     and dp.vrsta_Dok > '0'
+     and dp.GODINA in (to_char(&Datum_od,'yyyy'),to_char(&Datum_do,'yyyy'))
+     and dp.datum_dok between to_date('01.01.'|| to_char(&Datum_od,'yyyy'),'dd.mm.yyyy')
+	                      and to_date('31.12.'|| to_char(&Datum_od,'yyyy'),'dd.mm.yyyy')
+     
+     and dp.org_Deo in (103,104,105,106,107,108)  
+) dom
+
+
+ORDER BY
+
+         PR_POS_GR
+       , datum
+       , kratak_naziv
+       , grupni_naziv
+       , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+"REM WORKSPACETAB2","Za plan otpreme transp Ver. 2",,323
+SELECT pl.DATUM, pl.FIRMA, pl.KRATAK_NAZIV, pl.KUPAC_SIFRA, pl.NAZIV_KUPCA, pl.KUPAC_MI, pl.NAZIV_KORISNIKA
+     , pl.mesto_krace_br, pl.polje1 mesto_krace
+     , pl.ADRESA, pl.ADRESA2
+     , pl.PR_POS_GR, pl.GRUPNI_NAZIV
+     , pl.proizvod
+     , pl.KOLICINA, pl.PAL, pl.PAK_UK, pl.PAK_NETO_UK, pl.PAK_BRUTO_UK
+
+--     , rlz.kol
+, rlz.*
+FROM
+(
+	Select
+
+	       kon.DATUM
+	     , kon.FIRMA,kon.KRATAK_NAZIV
+	     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	     , case when kon.polje1 is null then
+	                 0
+	       else
+	                 1
+	       end                mesto_krace_br
+	     , nvl(kon.polje1,'NIJE DEF.') polje1
+	     , kon.adresa, kon.adresa2
+	     , kon.pr_pos_gr		PR_POS_GR
+	     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+         , proizvod
+	     , round(SUM(kon.KOLICINA),3)			KOLICINA
+	     , CEIL(SUM(kon.PAL))					PAL
+	     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+	     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+	     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+	From
+	(
+	       SELECT
+	              k.datum
+	            , KUPAC_SIFRA
+	            , pp.naziv naziv_kupca
+	            , KUPAC_MI
+	            , mi.NAZIV_KORISNIKA
+	            , mi.adresa, mi.adresa2, mi.polje1
+
+	            , p.POSEBNA_GRUPA pr_pos_gr
+	            , k.PROIZVOD
+	            , SUM(k.KOLICINA) KOLICINA
+
+	            , SUM(
+	                  case when nvl(a.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/a.za_kolicinu)
+	                  End
+	                 )															PAL
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu)
+	                  End
+	                 )															PAK_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.neto)
+	                  End
+	                 )															PAK_NETO_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.bruto)
+	                  End
+	                 )															PAK_BRUTO_UK
+
+	            , kv.firma
+	            , kv.kratak_naziv
+	       From komerc_plan_prodaje@konsolid k
+	          , poslovni_partner pp, mesto_isporuke mi
+	          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+	          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+	             From katalog_view K, firme f
+	             Where f.id=k.firma
+	             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+	            ) kv
+	          , proizvod p
+	          , (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+	       WHERE
+	             K.DATUM BETWEEN &Datum_od AND &Datum_do
+	         and pp.sifra = k.KUPAC_SIFRA
+	         and mi.ppartner=pp.sifra
+	         and mi.sifra_mesta=k.KUPAC_MI
+
+	         and k.proizvod=a.proizvod (+)
+	         and k.proizvod=pak.proizvod (+)
+	         and k.proizvod=kv.proizvod (+)
+
+	         and p.sifra = k.proizvod
+
+	    GROUP BY
+	             k.datum
+	           , k.KUPAC_SIFRA, k.KUPAC_MI
+	           , p.POSEBNA_GRUPA
+	           , k.PROIZVOD
+	           , pp.naziv
+	           , mi.NAZIV_KORISNIKA
+	           , mi.adresa, mi.adresa2, mi.polje1
+	           , kv.firma
+	           , kv.kratak_naziv
+
+	    ORDER BY
+	             k.datum
+	           , kv.kratak_naziv
+	           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+	           , p.POSEBNA_GRUPA
+	           , to_number(k.PROIZVOD)
+	) kon
+	, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+
+	where
+	      kon.pr_pos_gr = pgg.grupa (+)
+
+	  ---------------------------------
+	  AND pgg.grupni_naziv IS NULL
+	  ---------------------------------
+
+	Group BY kon.DATUM
+	       , kon.FIRMA,kon.KRATAK_NAZIV
+	       , kon.pr_pos_gr
+	       , pgg.grupni_naziv
+	       , kon.proizvod
+	       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	       , kon.adresa, kon.adresa2, kon.polje1
+
+	UNION
+
+	Select
+
+	       kon.DATUM
+	     , kon.FIRMA,kon.KRATAK_NAZIV
+	     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	     , case when kon.polje1 is null then
+	                 0
+	       else
+	                 1
+	       end                mesto_krace_br
+         , nvl(kon.polje1,'NIJE DEF.') polje1
+	     , kon.adresa, kon.adresa2
+	     , null		PR_POS_GR
+	     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+         , proizvod
+	     , round(SUM(kon.KOLICINA),3)			KOLICINA
+	     , CEIL(SUM(kon.PAL))					PAL
+	     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+	     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+	     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+	From
+	(
+	       SELECT
+	              k.datum
+	            , KUPAC_SIFRA
+	            , pp.naziv naziv_kupca
+	            , KUPAC_MI
+	            , mi.NAZIV_KORISNIKA
+	            , mi.adresa, mi.adresa2, mi.polje1
+
+	            , p.POSEBNA_GRUPA pr_pos_gr
+	            , k.PROIZVOD
+	            , SUM(k.KOLICINA) KOLICINA
+
+	            , SUM(
+	                  case when nvl(a.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/a.za_kolicinu)
+	                  End
+	                 )															PAL
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu)
+	                  End
+	                 )															PAK_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.neto)
+	                  End
+	                 )															PAK_NETO_UK
+
+	            , SUM(
+	                  case when nvl(pak.za_kolicinu,0)= 0 then
+	                            0
+	                       else
+	                            (k.kolicina/pak.za_kolicinu*pak.bruto)
+	                  End
+	                 )															PAK_BRUTO_UK
+
+	            , kv.firma
+	            , kv.kratak_naziv
+	       From komerc_plan_prodaje@konsolid k
+	          , poslovni_partner pp, mesto_isporuke mi
+	          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+	          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+	             From katalog_view K, firme f
+	             Where f.id=k.firma
+	             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+	            ) kv
+	          , proizvod p
+	          , (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+	       WHERE
+	             K.DATUM BETWEEN &Datum_od AND &Datum_do
+	         and pp.sifra = k.KUPAC_SIFRA
+	         and mi.ppartner=pp.sifra
+	         and mi.sifra_mesta=k.KUPAC_MI
+
+	         and k.proizvod=a.proizvod (+)
+	         and k.proizvod=pak.proizvod (+)
+	         and k.proizvod=kv.proizvod (+)
+
+	         and p.sifra = k.proizvod
+
+
+	    GROUP BY
+	             k.datum
+	           , k.KUPAC_SIFRA, k.KUPAC_MI
+	           , k.PROIZVOD
+	           , pp.naziv
+	           , mi.NAZIV_KORISNIKA
+	           , mi.adresa, mi.adresa2, mi.polje1
+	           , kv.firma
+	           , kv.kratak_naziv
+
+	    ORDER BY
+	             k.datum
+	           , kv.kratak_naziv
+	           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+	           , p.POSEBNA_GRUPA
+	           , to_number(k.PROIZVOD)
+	) kon
+	, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+
+	where
+	      kon.pr_pos_gr = pgg.grupa (+)
+	  ---------------------------------
+	  AND pgg.grupni_naziv IS NOT NULL
+	  ---------------------------------
+	Group BY kon.DATUM
+	       , kon.FIRMA,kon.KRATAK_NAZIV
+	       , pgg.grupni_naziv
+	       , kon.proizvod
+	       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	       , kon.adresa, kon.adresa2, kon.polje1
+) pl
+,
+(
+   Select dp.datum_dok
+        , dp.org_deo
+--        , case when dp.org_deo=103 then
+--                    5
+--               when dp.org_deo=104 then
+--                    4
+--               when dp.org_deo=105 then
+--                    14
+--               when dp.org_deo=106 then
+--                    3
+--               when dp.org_deo=107 then
+--                    11
+--               when dp.org_deo=108 then
+--                    12
+--          end firma
+
+        , m.ul01  firma
+        , dp.ppartner
+        , dp.mesto_isporuke
+        , sdp.proizvod
+        , -1 * sum( Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+                                       '3,14', sdp.Kolicina,
+                                       '4,14', sdp.Kolicina,
+                                       sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+                   ) kol
+
+
+   From dokument dp, stavka_dok sdp
+      , (SELECT UL01,IZ03 From mapiranje where modul = 'DB_LINKOVI')M
+   Where
+         dp.broj_dok>0
+--     and dp.vrsta_Dok in( '11','12','13','31') AND dp.tip_dok not in (23,221,222,238,225)
+     and dp.vrsta_Dok in( '11') AND dp.tip_dok not in (23,221,222,238,225)
+     and dp.GODINA in (to_char(&Datum_od,'yyyy'),to_char(&Datum_do,'yyyy'))
+     and dp.datum_dok between to_date('01.01.'|| to_char(&Datum_od,'yyyy'),'dd.mm.yyyy')
+	                      and to_date('31.12.'|| to_char(&Datum_od,'yyyy'),'dd.mm.yyyy')
+
+     and dp.org_Deo in (103,104,105,106,107,108)
+     and dp.status > 0 and dp.status !=4
+     and dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+     and dp.godina = sdp.godina and dp.vrsta_dok = sdp.vrsta_dok and dp.broj_dok = sdp.broj_dok
+     and dp.org_deo=m.IZ03
+   Group by dp.datum_dok, dp.org_deo, dp.ppartner, dp.mesto_isporuke, sdp.proizvod
+          , m.ul01
+) rlz
+
+where pl.datum=rlz.datum_dok (+)
+  and pl.firma=rlz.firma (+)
+  and pl.kupac_sifra=rlz.ppartner (+)
+  and pl.kupac_mi=rlz.mesto_isporuke (+)
+  and pl.proizvod=rlz.proizvod (+)
+order by to_number(pl.proizvod)
+--ORDER BY
+--
+--         PR_POS_GR
+--       , datum
+--       , kratak_naziv
+--       , grupni_naziv
+--       , to_number(KUPAC_SIFRA), to_number(KUPAC_MI)
+"REM WORKSPACETAB3",DOKUMENT.sql,,105
+--10067 mag 91 umesto 6023 treba 9145
+
+--11787
+-- na 28
+SELECT   d.rowid,
+--d.datum_dok + d.valuta_placanja,
+D.*
+FROM
+dokument@ALBUS d
+--VEZNI_DOK d
+--,
+--komentar d
+--FROM
+--stavka_Dok@sunce d --,
+--zavisni_troskovi d
+WHERE d.godina = 2011
+--and d.org_deo = 22
+--and d.VRSTA_DOK = 11 --and d.status = 4
+and (
+--         ( d.VRSTA_DOK = 1 and d.broj_dok in ('55')) --1351--
+--      or
+--          ( d.VRSTA_DOK =2 And d.BROJ_DOK in('1981')) --1351--
+--      or
+--          ( d.VRSTA_DOK = 3 And d.BROJ_DOK in('1614')) --1351--
+--
+--      or
+--          ( d.VRSTA_DOK = 3 And d.BROJ_DOK1 in('354')) --1351--
+----
+----
+--      or
+--
+          ( d.VRSTA_DOK = 10 And d.BROJ_DOK in('10')) --1351--
+------
+------
+--      or
+--          ( d.VRSTA_DOK in(11) And d.BROJ_DOK1 in('780')) --1351--
+--      or
+--          ( d.VRSTA_DOK in(61) And d.BROJ_DOK in('2542')) --1351--
+--
+--or
+--          ( d.VRSTA_DOK in(73) And d.BROJ_DOK in('1854')) --1351--
+--or
+--          ( d.VRSTA_DOK in(74) And d.BROJ_DOK in('2191')) --1351--
+
+--
+    )
+--and proizvod in (116)
+--  and org_deo = 11
+
+--  and d.org_deo in (312)
+--  and datum_dok = to_date('04.09.2009','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----                   (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--         (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in(4199)
+--order by stavka
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+
+--order by to_number(proizvod)
+
+
+--and REALIZOVANO <> kolicina
+"REM WORKSPACETAB4","Za plan otpreme FABRIKE Ver1",,12
+SELECT kv.firma, kv.kratak_naziv, M.UL02
+From komerc_plan_prodaje@konsolid k
+   , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+      From katalog_view K, firme f Where f.id=k.firma Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv) kv
+   , (SELECT UL01,UL02 From mapiranje where modul = 'DB_LINKOVI')M
+WHERE
+      K.DATUM BETWEEN &Datum_od AND &Datum_do
+  and k.proizvod=kv.proizvod (+)
+  and FIRMA=M.UL01
+GROUP BY kv.firma, kv.kratak_naziv, M.UL02
+
+ORDER BY M.UL02
+"REM WORKSPACETAB5","Za plan otpreme MESTA ver 1",,15
+Select
+       case when polje1 Is Null Then
+                 0
+       else
+                 1
+       end mesto_krace_br
+     , nvl(polje1,'NIJE DEF.') mesto_krace, KUPAC_SIFRA, KUPAC_MI
+From komerc_plan_prodaje@konsolid k, poslovni_partner pp, mesto_isporuke mi
+WHERE
+      K.DATUM BETWEEN &Datum_od AND &Datum_do
+  and pp.sifra = k.KUPAC_SIFRA
+  and mi.ppartner=pp.sifra and mi.sifra_mesta=k.KUPAC_MI
+
+GROUP BY polje1, KUPAC_SIFRA, KUPAC_MI
+ORDER BY mesto_krace_br, nvl(polje1,'NIJE DEF.'), KUPAC_SIFRA, KUPAC_MI
+"REM WORKSPACETAB6","Za plan otpreme GRUPISANJE_PRO",,22
+Select
+
+      p.posebna_grupa		PR_POS_GR
+    , case when pgg.grupni_naziv is null Then 0 else 1 end GRUPNI_NAZIV_BR
+    , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+    , K.PROIZVOD
+
+From komerc_plan_prodaje@konsolid k
+   , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod From katalog_view K, firme f
+      Where f.id=k.firma Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv) kv
+   , proizvod p
+   , (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+
+WHERE
+      K.DATUM BETWEEN &Datum_od AND &Datum_do
+  and k.proizvod=kv.proizvod (+)
+  and p.sifra = k.proizvod
+  and p.posebna_grupa = pgg.grupa (+)
+
+Group BY p.posebna_grupa, GRUPNI_NAZIV, K.PROIZVOD
+
+Order by GRUPNI_NAZIV_BR, GRUPNI_NAZIV
+"REM WORKSPACETAB7","Za plan otp PAKOVANJA",,13
+Select
+        k.proizvod
+     , nvl(pak.PAK_SIFRA,'-')
+From komerc_plan_prodaje@konsolid k
+    , pakovanje pak
+
+WHERE
+      K.DATUM BETWEEN &Datum_od AND &Datum_do
+  and k.proizvod=pak.proizvod (+)
+
+Group BY k.proizvod
+       , PAK_SIFRA
+Order by substr(nvl(PAK_SIFRA,'-'),-1)
+"REM WORKSPACETAB8","Za plan otp PALETE",,13
+Select
+       k.proizvod
+     , nvl(a.PROIZVOD,'-987777')
+From komerc_plan_prodaje@konsolid k
+   , ambalaza a
+
+WHERE
+      K.DATUM BETWEEN &Datum_od AND &Datum_do
+  and k.proizvod=a.proizvod (+)
+
+Group BY k.proizvod
+       , a.PROIZVOD
+Order by TO_NUMBER(nvl(a.PROIZVOD,'-987777'))
+"REM WORKSPACETAB9",Query20,,2
+select * from planiranje_mapiranje
+where vrsta='PORUKE_U_REPORT_TMP'
+"REM WORKSPACETAB10",Dok_st_dok5.sql,,103
+select
+Sd.ROWID , --pjedmere.naziv(sd.proizvod) jm,
+--pproizvod.naziv(sd.proizvod) ,
+--SD.BROJ_DOK,
+--D.org_deo, d.poslovnica,  d.vrsta_izjave,
+--sd.proizvod, SD.porez
+--,sd.cena,sd.cena1
+--,Pporez.ProcenatPoreza(d.Poslovnica,sd.Proizvod,d.Datum_dok,d.Vrsta_izjave) treba_por
+--,sd.stavka
+--d.rowid, d.vrsta_izjave,d.org_deo, d.broj_dok1, sd.*
+--D.ROWID,-- D.*,
+--sd.jed_mere, p.jed_mere,
+--d.status, d.datum_dok, D.ORG_DEO, D.BROJ_DOK1,
+d.*,
+--Z.*
+
+SD.*
+--D.DATUM_dOK, SD.VRSTA_dOK, SD.BROJ_DOK, SD.PROIZVOD, SD.KOLICINA,SD.CENA,SD.CENA1
+--, sd.cena * (1-sd.rabat/100)
+----,Obracunaj_JUS(sd.proizvod, sd.neto_kg, sd.proc_vlage, sd.proc_necistoce,nvl(sd.htl,0))
+----, (sd.kolicina * 2) z_t_osn, round((sd.kolicina * 2 * 1.18),2) z_t_uk
+, OdgovarajucaCena(D.Org_deo , Sd.proizvod , d.datum_dok, sd.faktor, sd.valuta,0) odgov
+----, PProdajniCenovnikGrKup.Cena ('GKNEU', sd.proizvod , d.Datum_Dok, 'YUD' , sd.Faktor  ) neu
+,PProdajniCenovnik.Cena (sd.proizvod , d.Datum_Dok, 'YUD' , sd.Faktor  ) PROD
+--, Pporez.ProcenatPoreza(d.Poslovnica,sd.Proizvod,d.Datum_dok,d.Vrsta_izjave) treba_por
+--,Kolicina * Faktor * 100 / Kolicina_Kontrolna jacina
+--d.tip_dok,pproizvod.naziv(sd.proizvod),--sd.*
+--sd.proizvod , pproizvod.naziv(sd.proizvod),sum (sd.kolicina * sd.faktor * sd.k_robe)
+--,d.status,sd.kolicina, sd.realizovano
+
+--, ZALIHE Z
+, KOLICINA kol,SD.JED_MERE jm, SD.FAKTOR fak
+
+, P.JED_MERE sjm, P.PRODAJNA_JM, FAKTOR_PRODAJNE fpr
+, p.naziv
+from stavka_dok sd, dokument d , PROIZVOD P , GRUPA_PR  GPR
+--from dokument d, stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+--  AND TIP_DOK = 11
+--  AND D.ORG_DEO = 108
+--  AND d.vrsta_Dok = 13
+--  AND D.BROJ_DOK  = 237
+--and sd.faktor <> 1
+  and SD.proizvod = '11582'
+--  and (k_robe <>0 or d.vrsta_Dok = 80)
+--and      d.vrsta_dok in ('11')
+--  and d.broj_dok = 19
+--and (
+--          ( d.VRSTA_DOK = 11 And d.BROJ_DOK in('10667')) --1351--
+------      or
+------          ( d.VRSTA_DOK = 2 And d.BROJ_DOK in('156')) --1351--
+----
+--    )
+--
+--AND D.ORG_DEO = Z.ORG_dEO
+--AND SD.PROIZVOD = Z.PROIZVOD  (+)
+
+--and proizvod in (select proizvod from stavka_dok
+--where godina = 2010
+-- and vrsta_dok = 3
+-- and broj_dok = 21028)
+
+--  AND NVL ( SD.CENA , 0 ) <>  NVL ( SD.CENA1 , 0 )
+--
+--  and d.status >= 1
+--  and ( nvl(sd.cena1,0) <= 0 or nvl(sd.cena,0) <= 0 )
+--  and d.vrsta_dok  IN ( 1,26,45,46,
+--                        8,27,28,32 )
+--  and tip_dok = 23
+--  and sd.stavka = 1
+--  and d.broj_dok in (10)
+-- and d.broj_dok1 in (1595)
+--   AND SD.CENA <> 18
+-- PProdajniCenovnik.Cena( SD.Proizvod,D.Datum_Dok,SD.Valuta,SD.Faktor)
+--  and d.datum_dok > to_date('14.05.2011','dd.mm.yyyy')
+--  and sd.proizvod = 4465
+--AND D.VRSTA_DOK = 3
+--and d.status > 0
+--and sd.kolicina <> sd.realizovano
+--and k_robe <> 0
+--and nvl(sd.cena1,0) = 0
+--  and proizvod in ('10174','10175')
+--order by --to_number(sd.proizvod),
+----d.datum_dok ,
+--to_number(sd.broj_dok)
+--to_number(sd.proizvod)--,sd.stavka -- ,
+--
+----, d.broj_dok , stavka
+--ORDER BY TO_NUMBER(PROIZVOD),
+--         D.DATUM_UNOSA,
+--         TO_NUMBER(d.vrsta_dok),
+--         TO_NUMBER(d.BROJ_dok)
+--         --datum_dok--, stavka--
+--
+--and sd.stavka = 98
+
+order by d.datum_dok,d.datum_unosa;
+"REM WORKSPACETAB11","Za plan otpreme transp KRACE ",,134
+select t.DATUM,m.ul02,t.FIRMA,t.KRATAK_NAZIV,t.KUPAC_SIFRA,t.NAZIV_KUPCA,t.KUPAC_MI,t.NAZIV_KORISNIKA,t.ADRESA,t.ADRESA2,t.MESTO_KRACE,t.MESTO_KRACE_BR
+     , t.PR_POS_GR,t.GRUPNI_NAZIV,t.KOLICINA,t.PAL,t.PAK_UK,t.PAK_NETO_UK,t.PAK_BRUTO_UK
+from
+(
+	Select
+
+	       kon.DATUM
+	     , kon.FIRMA,kon.KRATAK_NAZIV
+	     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	     , kon.adresa, kon.adresa2, kon.mesto_krace, kon.mesto_krace_br
+	     , kon.pr_pos_gr		PR_POS_GR
+	     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+
+	     , round(SUM(kon.KOLICINA),3)			KOLICINA
+	     , CEIL(SUM(kon.PAL))					PAL
+	     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+	     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+	     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+	From
+	(
+	       SELECT
+	              k.datum, KUPAC_SIFRA, pp.naziv naziv_kupca
+	            , KUPAC_MI, mi.NAZIV_KORISNIKA, mi.adresa, mi.adresa2, mi.polje1 									mesto_krace
+	            , case when mi.polje1 is null Then 0 else 1 end 													mesto_krace_br
+	            , p.POSEBNA_GRUPA pr_pos_gr, k.PROIZVOD
+	            , SUM(k.KOLICINA)																					KOLICINA
+	            , SUM(case when nvl(a.za_kolicinu,0)= 0 then 0 else (k.kolicina/a.za_kolicinu) End)					PAL
+	            , SUM(case when nvl(pak.za_kolicinu,0)= 0 then 0 else (k.kolicina/pak.za_kolicinu) End)				PAK_UK
+	            , SUM(case when nvl(pak.za_kolicinu,0)= 0 then 0 else (k.kolicina/pak.za_kolicinu*pak.neto) End)	PAK_NETO_UK
+	            , SUM(case when nvl(pak.za_kolicinu,0)= 0 then 0 else (k.kolicina/pak.za_kolicinu*pak.bruto)End)	PAK_BRUTO_UK
+	            , kv.firma, kv.kratak_naziv
+	       From komerc_plan_prodaje@konsolid k, poslovni_partner pp, mesto_isporuke mi
+	          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+	          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+	             From katalog_view K, firme f Where f.id=k.firma
+	             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+	            ) kv
+	          , proizvod p, (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+	       WHERE
+	             K.DATUM BETWEEN &Datum_od AND &Datum_do
+	         and pp.sifra = k.KUPAC_SIFRA
+	         and mi.ppartner=pp.sifra and mi.sifra_mesta=k.KUPAC_MI
+
+	         and k.proizvod=a.proizvod (+) and k.proizvod=pak.proizvod (+) and k.proizvod=kv.proizvod (+)
+	         and p.sifra = k.proizvod
+	    GROUP BY k.datum, k.KUPAC_SIFRA, k.KUPAC_MI, p.POSEBNA_GRUPA, k.PROIZVOD, pp.naziv
+	           , mi.NAZIV_KORISNIKA, mi.adresa, mi.adresa2, mi.polje1
+	           , kv.firma, kv.kratak_naziv
+	    ORDER BY k.datum, kv.kratak_naziv, to_number(KUPAC_SIFRA), to_number(KUPAC_MI), p.POSEBNA_GRUPA, to_number(k.PROIZVOD)
+	) kon, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+	where
+	      kon.pr_pos_gr = pgg.grupa (+)
+	  ---------------------------------
+	  AND pgg.grupni_naziv IS NULL
+	  ---------------------------------
+
+	Group BY kon.DATUM, kon.FIRMA,kon.KRATAK_NAZIV, kon.pr_pos_gr, pgg.grupni_naziv
+	       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA, kon.adresa, kon.adresa2, kon.mesto_krace, kon.mesto_krace_br
+
+	UNION
+
+	Select
+
+	       kon.DATUM
+	     , kon.FIRMA,kon.KRATAK_NAZIV
+	     , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	     , kon.adresa, kon.adresa2, kon.mesto_krace, kon.mesto_krace_br
+	     , null		PR_POS_GR
+	     , nvl(pgg.grupni_naziv,'NIJE DEF.') 	GRUPNI_NAZIV
+
+	     , round(SUM(kon.KOLICINA),3)			KOLICINA
+	     , CEIL(SUM(kon.PAL))					PAL
+	     , CEIL(SUM(kon.PAK_UK))				PAK_UK
+	     , CEIL(SUM(kon.PAK_NETO_UK))			PAK_NETO_UK
+	     , CEIL(SUM(kon.PAK_BRUTO_UK))			PAK_BRUTO_UK
+
+	From
+	(
+	       SELECT
+	              k.datum, KUPAC_SIFRA, pp.naziv naziv_kupca, KUPAC_MI, mi.NAZIV_KORISNIKA, mi.adresa, mi.adresa2, mi.polje1 mesto_krace
+	            , case when mi.polje1 is null Then 0 else 1 end mesto_krace_br
+	            , p.POSEBNA_GRUPA pr_pos_gr, k.PROIZVOD
+	            , SUM(k.KOLICINA) 																					KOLICINA
+	            , SUM(case when nvl(a.za_kolicinu,0)= 0 then 0 else (k.kolicina/a.za_kolicinu) End)					PAL
+	            , SUM(case when nvl(pak.za_kolicinu,0)= 0 then 0 else (k.kolicina/pak.za_kolicinu) End)				PAK_UK
+	            , SUM(case when nvl(pak.za_kolicinu,0)= 0 then 0 else (k.kolicina/pak.za_kolicinu*pak.neto)End)		PAK_NETO_UK
+	            , SUM(case when nvl(pak.za_kolicinu,0)= 0 then 0 else (k.kolicina/pak.za_kolicinu*pak.bruto)End)	PAK_BRUTO_UK
+	            , kv.firma, kv.kratak_naziv
+	       From komerc_plan_prodaje@konsolid k, poslovni_partner pp, mesto_isporuke mi
+	          , (select proizvod, za_kolicinu from ambalaza where ambalaza=399) a
+	          , (Select k.firma, f.kratak_naziv, k.dobavljac, k.proizvod
+	             From katalog_view K, firme f Where f.id=k.firma
+	             Group by k.firma, k.dobavljac, k.proizvod,f.kratak_naziv
+	            ) kv
+	          , proizvod p
+	          , (select proizvod, za_kolicinu, BRUTO, NETO from PAKOVANJE) pak
+	       WHERE
+	             K.DATUM BETWEEN &Datum_od AND &Datum_do
+	         and pp.sifra = k.KUPAC_SIFRA
+	         and mi.ppartner=pp.sifra
+	         and mi.sifra_mesta=k.KUPAC_MI
+
+	         and k.proizvod=a.proizvod (+) and k.proizvod=pak.proizvod (+) and k.proizvod=kv.proizvod (+)
+	         and p.sifra = k.proizvod
+
+
+	    GROUP BY
+	             k.datum, k.KUPAC_SIFRA, k.KUPAC_MI, p.POSEBNA_GRUPA, k.PROIZVOD, pp.naziv
+	           , mi.NAZIV_KORISNIKA, mi.adresa, mi.adresa2, mi.polje1, kv.firma, kv.kratak_naziv
+	    ORDER BY k.datum, kv.kratak_naziv
+	           , to_number(KUPAC_SIFRA), to_number(KUPAC_MI), p.POSEBNA_GRUPA, to_number(k.PROIZVOD)
+	) kon
+	, (select * from POSEBNA_GRUPA_GRUPNO where firma = 1) pgg
+	where
+	      kon.pr_pos_gr = pgg.grupa (+)
+	  ---------------------------------
+	  AND pgg.grupni_naziv IS NOT NULL
+
+	  ---------------------------------
+	Group BY kon.DATUM
+	       , kon.FIRMA,kon.KRATAK_NAZIV
+	       , pgg.grupni_naziv
+	       , kon.KUPAC_SIFRA,kon.NAZIV_KUPCA,kon.KUPAC_MI,kon.NAZIV_KORISNIKA
+	       , kon.adresa, kon.adresa2, kon.mesto_krace, kon.mesto_krace_br
+) t
+,
+(Select * from mapiranje
+ where modul='DB_LINKOVI'
+ ORDER BY TO_NUMBER(UL02)
+) m
+where t.firma=m.ul01
+
+order by t.datum, to_number(m.ul02)
+"REM WORKSPACETAB12",Query21,,3
+Select * from mapiranje
+where modul='DB_LINKOVI'
+ORDER BY TO_NUMBER(UL02)
+"REM WORKSPACETAB13",Query20,,1
+desc komerc_plan_prodaje@konsolid
+"REM WORKSPACETAB14",Query57,,3
+SELECT *
+FROM OTPREMA_PROIZVODI_FIRME
+WHERE INVEJ_SIFRA = 11582
+"REM WORKSPACETAB15",Transp_view_CODE,,427
+select * from
+(
+	Select DATUM_DOK, DATUM_ISPORUKE, STATUS_NAL, GOD, VRD, BRD, FIRMA, FIRMA_NAZ, FIRMA_NAZ1, ORG_DEO, GRUPNI_NAZIV, PP_ISPORUKE, PP_ISPORUKE_NAZ, LOK, MESTO_ISPORUKE, ADRESA_ISP, NACIN_OTPREME
+	     , sum(PALETE) palete, sum(PAK_BRUTO) pak_bruto
+	From
+	(
+	Select DATUM_DOK,DATUM_ISPORUKE,STATUS_NAL,GOD,VRD,BRD,gr.FIRMA,FIRMA_NAZ,FIRMA_NAZ1,ORG_DEO,PP_ISPORUKE,PP_ISPORUKE_NAZ,LOK,MESTO_ISPORUKE,ADRESA_ISP,gr.NACIN_OTPREME
+	     , posebna_grupa,NVL(grupni_naziv,'NIJE DEF') GRUPNI_NAZIV,PALETE,PAK_BRUTO
+	From
+	(
+	Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '1' firma
+			     , CASE WHEN D.ORG_DEO IN (103,123) THEN
+			                'ALBUS'--'Invej-ALB N. SAD'
+		                WHEN D.ORG_DEO IN (105,125) THEN
+			                'MEDELA'--'Invej-MED VRBAS'
+		                WHEN D.ORG_DEO IN (106,126) THEN
+			                'RUBIN'--'Invej-RUB KRUSEVAC'
+		                WHEN D.ORG_DEO IN (108,128) THEN
+			                'RATAR'--'Invej-RAT PANCEVO'
+		                WHEN D.ORG_DEO IN (107,127) THEN
+			                'SUNCE'--'Invej-SUN SOMBOR'
+		                WHEN D.ORG_DEO IN (104,124) THEN
+			                'VITAL'--'Invej-VIT VRBAS'
+			       ELSE
+				            'INVEJ - '|| OD.Mesto ||' ('|| OD.OPSTINA ||')'
+		           END firma_naz
+		         , 'INVEJ' firma_naz1
+			     , d.org_deo
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+
+	             ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	   ELSE
+	        	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	 ) PALETE
+
+	            , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                        end)
+	               ) PAK_BRUTO
+
+			From dokument d, stavka_dok sd, poslovni_partner pp, MESTO_ISPORUKE m, ORG_DEO_OSN_PODACI od, proizvod p, pakovanje pak
+			   , (Select * From ambalaza where AMBALAZA = '399') amb
+			Where d.broj_dok>0 and d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  and D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280)
+			  and d.org_Deo not between 113 and 118 -- PRODAJA ROBE FIRMAMA IZ MAGINA INVEJA U FRIMAMA
+			  and d.org_Deo not between 133 and 138 -- PRODAJA ROBE FIRMAMA IZ MAGINA INVEJA U FIRMAMA
+			  AND '106,206' != to_char(D.org_deo)||','||D.pp_Isporuke  --rub  -- PRODAJA ROBE RUBINU IZ MAGINA INVEJA U RUBINU, PRI OTPREMI ROBE
+			  AND '108,138' != to_char(D.org_deo)||','||D.pp_Isporuke --rat  -- PRODAJA ROBE RATARU IZ MAGINA INVEJA U RATARU
+			  AND '103,172' != to_char(D.org_deo)||','||D.pp_Isporuke --alb  -- PRODAJA ROBE ALBUSU IZ MAGINA INVEJA U ALBUSU
+			  AND '104,342' != to_char(D.org_deo)||','||D.pp_Isporuke --vit  -- PRODAJA ROBE VITALU IZ MAGINA INVEJA U VITALU
+			  AND '105,1226'!= to_char(D.org_deo)||','||D.pp_Isporuke --med  -- PRODAJA ROBE MEDELI IZ MAGINA INVEJA U MEDELI
+			  AND '107,965' != to_char(D.org_deo)||','||D.pp_Isporuke --sun  -- PRODAJA ROBE SUNCU IZ MAGINA INVEJA U SUNCU
+			  And '160,1138' != to_char(D.org_deo)||','||D.pp_Isporuke --lukap -- invej magacin goriva i maziva u lucip i otpremiti luci pancevo
+	          And D.org_deo not in (  90   -- mon
+	                                 ,3376 -- happy
+	                                 ,711  -- kos
+	                                )
+	          --		                            , 594  -- PEK
+	          --		                            , 1138 -- lukap
+
+			  And pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+			  And od.ORG_DEO (+) = d.org_deo
+			  And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	          And p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, OD.Mesto, OD.OPSTINA, p.posebna_grupa
+	union
+			Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '3' firma
+			     , 'RUBIN' firma_naz
+		         , 'RUBIN' firma_naz1
+			     , d.org_deo
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+	                ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	       ELSE
+	         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	   ) PALETE
+
+	             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                     else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                         end)
+	                    ) PAK_BRUTO
+
+		   	From dokument@RUBIN d, stavka_dok@RUBIN sd, poslovni_partner@rubin pp, MESTO_ISPORUKE@RUBIN m, proizvod@RUBIN p, pakovanje@rubin pak
+	           , (Select * From ambalaza@RUBIN where AMBALAZA = '138') amb
+			Where d.broj_dok>0 and d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  And D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	          AND '7194,1' != D.PP_Isporuke||','||D.Mesto_Isporuke
+			  And pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+	          And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+			  And p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+	          And d.Org_deo not in (70,71,72)
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	--union
+	--		Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+	--		     , '2' firma
+	--		     , 'MONUS' firma_naz
+	--		     , 'MONUS' firma_naz1
+	--		     , d.org_deo-- , OD.MESTO mesto_utovara
+	--		     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+	--	         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+	--	         , d.nacin_otpreme, p.posebna_grupa
+	--
+	--             ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	--                            0
+	--         	       ELSE
+	--         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	--           	   END
+	--           	   ) PALETE
+	--
+	--             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	--                                       0
+	--		                     else
+	--	                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	-- 	                                                           (pak.za_kolicinu  )
+	-- 	                                             , 0) *
+	--	                                         pak.BRUTO
+	--	                                     , 3 )
+	--                         end)
+	--               ) PAK_BRUTO
+	--
+	--		From dokument@MONUS d, stavka_Dok@MONUS sd, poslovni_partner@monus pp, MESTO_ISPORUKE@monus m, proizvod@MONUS p, pakovanje@monus pak, ambalaza@monus amb
+	--		Where d.broj_dok>0 and d.vrsta_Dok='10'
+	--		  and d.godina > 2009
+	--		  and D.STATUS IN (1,3)
+	--		  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	--		  and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+	--          And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	--		  and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	--          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+	--	    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	union
+			Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '12' firma
+			     , 'RATAR' firma_naz
+			     , 'RATAR' firma_naz1
+			     , d.org_deo-- , OD.MESTO mesto_utovara
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+
+		         ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	       ELSE
+	         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	   ) PALETE
+
+	             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                         end)
+	               ) PAK_BRUTO
+
+			From dokument@RATAR d, stavka_Dok@RATAR sd, poslovni_partner@ratar pp, MESTO_ISPORUKE@RATAR m, proizvod@RATAR p, pakovanje@RATAR pak
+			   , (Select * From ambalaza@Ratar where AMBALAZA = '60192') amb
+			Where d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  and D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	          and d.org_deo != 106
+	          AND '3353,1' != D.PP_Isporuke||','||D.Mesto_Isporuke -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN DOMACE PRODAJE, KOJI JE U RATARU
+	          AND '3353,3' != D.PP_Isporuke||','||D.Mesto_Isporuke -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN IZVOZA, KOJI JE U RATARU
+			  and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+	          And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	          and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	          And SD.PROIZVOD = AMB.PROIZVOD (+)
+	          And sd.broj_dok>0 and sd.vrsta_dok = 10 AND SD.godina > 2009
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	--union
+	--		Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+	--		     , '7' firma
+	--		     , 'PEKARA' firma_naz
+	--		     , 'PEKARA' firma_naz1
+	--		     , d.org_deo-- , OD.MESTO mesto_utovara
+	----		     , nvl(posgrgr.GRUPNI_NAZIV,'NIJE DEF') ROBA
+	--		     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+	--	         , NVL(upper(m.ADRESA2),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+	--	         , d.nacin_otpreme, p.posebna_grupa
+	--
+	--	         ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	--                            0
+	--         	       ELSE
+	--         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	--           	   END
+	--           	   ) PALETE
+	--
+	--             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	--                                       0
+	--		                     else
+	--	                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	-- 	                                                           (pak.za_kolicinu  )
+	-- 	                                             , 0) *
+	--	                                         pak.BRUTO
+	--	                                     , 3 )
+	--                         end)
+	--               ) PAK_BRUTO
+	--
+	--		From dokument@PEKARA d, stavka_Dok@PEKARA sd, poslovni_partner@pekara pp, MESTO_ISPORUKE@PEKARA m, proizvod@PEKARA p, pakovanje@PEKARA pak, ambalaza@PEKARA amb
+	--		Where d.broj_dok>0 and d.broj_dok>0 and d.vrsta_Dok='10'
+	--		  and d.godina > 2009
+	--		  and D.STATUS IN (1,3)
+	--		  AND ( D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	--		      )
+	--		  and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+	--          And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	--          and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	--          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+	--	    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	union
+			Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '5' firma
+			     , 'ALBUS' firma_naz
+			     , 'ALBUS' firma_naz1
+			     , d.org_deo-- , OD.MESTO mesto_utovara
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+
+		         ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	       ELSE
+	         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	  ) PALETE
+
+	            , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                     else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                         end)
+	              ) PAK_BRUTO
+
+			From dokument@ALBUS d, stavka_Dok@ALBUS sd, poslovni_partner@albus pp, MESTO_ISPORUKE@ALBUS m, proizvod@ALBUS p, pakovanje@ALBUS pak
+			  , (Select * From ambalaza@albus) amb
+			Where d.broj_dok>0 and d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  and D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	--          AND D.PP_ISPORUKE||','||D.MESTO_ISPORUKE!='706628,2'
+	          AND '706628,3'!= D.PP_Isporuke||','||D.Mesto_Isporuke   -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN DOMACE PRODAJE, KOJI JE U ALBUSU
+	          AND '706628,4'!= D.PP_Isporuke||','||D.Mesto_Isporuke -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN IZVOZA, KOJI JE U ALBUSU
+		      and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+	          And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	          and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	union
+			Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '4' firma
+			     , 'VITAL' firma_naz
+			     , 'VITAL' firma_naz1
+			     , d.org_deo-- , OD.MESTO mesto_utovara
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+
+		         ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	       ELSE
+	         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	   ) PALETE
+
+	             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                     else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                         end)
+	                    ) PAK_BRUTO
+
+			From dokument@VITAL d, stavka_Dok@VITAL sd, poslovni_partner@vital pp, MESTO_ISPORUKE@VITAL m, proizvod@VITAL p, pakovanje@VITAL pak
+			   --, ambalaza@VITAL amb
+			   , (Select * From ambalaza@vital where AMBALAZA = '0333901') amb
+			Where d.broj_dok>0 and d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  and D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	          AND D.PP_ISPORUKE||','||D.MESTO_ISPORUKE != '5360,8' -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN DOMACE PRODAJE, KOJI JE U VITALU
+	          AND D.PP_ISPORUKE||','||D.MESTO_ISPORUKE != '5360,9' -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN IZVOZA, KOJI JE U VITALU
+		      and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+	          And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	          and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+	          AND (    (amb.ambalaza is null)
+	                or (amb.ambalaza is Not null And amb.AMBALAZA = NVL('0333901',amb.AMBALAZA))
+	              )
+	          And p.posebna_Grupa not in (91) -- vodena para koju vital kroz cevi otprema Carnexu
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	union
+			Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '14' firma
+			     , 'MEDELA' firma_naz
+			     , 'MEDELA' firma_naz1
+			     , d.org_deo-- , OD.MESTO mesto_utovara
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+
+		         ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	       ELSE
+	         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	  ) PALETE
+
+	             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                     else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                         end)
+	               ) PAK_BRUTO
+
+			From dokument@MEDELA d, stavka_Dok@MEDELA sd, poslovni_partner@medela pp, MESTO_ISPORUKE@MEDELA m, proizvod@MEDELA p, pakovanje@MEDELA pak
+	           --, ambalaza@MEDELA amb
+			   , (Select * From ambalaza@medela where AMBALAZA = '399') amb
+			Where d.broj_dok>0 and d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  and D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	          AND '451,2' != D.PP_Isporuke||','||D.Mesto_Isporuke -- PRODAJA ROBE INVEJU U NJEGOV MAGACIN DOMACE PRODAJE, KOJI JE U MEDELI
+		      and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+			  And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	             and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	             And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+	--             AND (    (amb.ambalaza is null)
+	--                   or (amb.ambalaza is Not null And amb.AMBALAZA = NVL('399',amb.AMBALAZA))
+	--                 )
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	union
+			Select d.DATUM_DOK, d.DATUM_VALUTE DATUM_ISPORUKE, d.status status_nal, d.godina god, d.vrsta_dok vrd, d.broj_dok brd
+			     , '11' firma
+			     , 'SUNCE' firma_naz
+			     , 'SUNCE' firma_naz1
+			     , d.org_deo-- , OD.MESTO mesto_utovara
+			     , d.pp_isporuke, PP.Naziv PP_ISPORUKE_NAZ, d.mesto_isporuke lok
+		         , NVL(upper(m.POLJE1),'LOSE DEF. M.ISP.') mesto_isporuke, upper(m.ADRESA)||', '|| upper(m.ADRESA1) adresa_isp
+		         , d.nacin_otpreme, p.posebna_grupa
+
+		         ,(CASE WHEN SUM(NVL(AMB.ZA_KOLICINU,0)) = 0 THEN
+	                            0
+	         	       ELSE
+	         	                 ROUND(SUM((sd.kolicina - sd.realizovano) * SD.FAKTOR /(AMB.ZA_KOLICINU   )),1)
+	           	   END
+	           	  ) PALETE
+
+	             , CEIL(sum(case when nvl(pak.BRUTO,0) = 0 then
+	                                       0
+			                     else
+		                               round(nvl ( round((sd.kolicina -sd.realizovano)* sd.Faktor,3) /
+	 	                                                           (pak.za_kolicinu  )
+	 	                                             , 0) *
+		                                         pak.BRUTO
+		                                     , 3 )
+	                         end)
+	                    ) PAK_BRUTO
+
+			From dokument@SUNCE d, stavka_Dok@SUNCE sd, poslovni_partner@sunce pp, MESTO_ISPORUKE@SUNCE m, proizvod@SUNCE p, pakovanje@SUNCE pak
+			  --, ambalaza@SUNCE amb
+			  , (Select * From ambalaza@sunce where AMBALAZA = '206320') amb
+			Where d.vrsta_Dok='10'
+			  and d.godina > 2009
+			  and D.STATUS IN (1,3)
+			  AND D.Tip_Dok In ( 20,24,25,26,221,222,223,224,225,230,231,232,235,236,238,240,241,242,243,244,245,250,251,253,254,255,256,260,265,268,280, 267)
+	          AND '2202907,1' != D.PP_Isporuke||','||D.Mesto_Isporuke-- PRODAJA ROBE INVEJU U NJEGOV MAGACIN DOMACE PRODAJE, KOJI JE U SUNCU
+	          AND '2202907,3' != D.PP_Isporuke||','||D.Mesto_Isporuke-- PRODAJA ROBE INVEJU U NJEGOV MAGACIN IZVOZA, KOJI JE U SUNCU
+
+		      and pp.sifra = d.PP_Isporuke and m.PPARTNER =  d.PP_Isporuke and m.SIFRA_MESTA = d.mesto_isporuke
+			  And d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+	          and p.sifra = sd.proizvod and sd.proizvod = pak.proizvod (+)
+	          And SD.PROIZVOD = AMB.PROIZVOD (+) And sd.vrsta_dok = 10 AND SD.godina > 2009
+	--          AND (    (amb.ambalaza is null)
+	--                or (amb.ambalaza is Not null And amb.AMBALAZA = NVL('206320',amb.AMBALAZA))
+	--              )
+		    Group by d.DATUM_DOK, d.DATUM_VALUTE, D.status, d.GODINA, D.VRSTA_DOK, D.BROJ_DOK, d.ORG_DEO, d.pp_isporuke, PP.Naziv, d.mesto_isporuke,M.POLJE1, m.ADRESA2, m.ADRESA, m.ADRESA1, d.nacin_otpreme, p.posebna_grupa
+	) gr, POSEBNA_GRUPA_GRUPNO posgrgr
+	where gr.firma = posgrgr.firma           (+)
+	  and gr.posebna_grupa = posgrgr.grupa   (+)
+	)
+	group by DATUM_DOK,DATUM_ISPORUKE,STATUS_NAL,GOD,VRD,BRD,FIRMA,FIRMA_NAZ,FIRMA_NAZ1,ORG_DEO,PP_ISPORUKE,PP_ISPORUKE_NAZ,LOK,MESTO_ISPORUKE,ADRESA_ISP,NACIN_OTPREME,GRUPNI_NAZIV
+	Order by datum_isporuke, firma, god, to_number(vrd), to_number(brd)
+)
+where firma_naz ='VITAL'
+  and datum_isporuke between to_date('29.09.2011','dd.mm.yyyy') and to_date('29.09.2011','dd.mm.yyyy')
+"REM WORKSPACETAB16",Pos_grupa_grupno,,1
+Select * from POSEBNA_GRUPA_GRUPNO
+"REM WORKSPACETAB17",Query58,,16
+------ fabrike
+--Select * from report_tmp
+--where session_id like '0022027E0001'
+--  and c1='-977654320';
+
+---- mesta otp
+Select * from report_tmp
+where session_id like '0022027E0001'
+  and c1='-977654321'
+order by to_number(c4);
+
+---- roba
+--Select * from report_tmp
+--where session_id like '0022027E0001'
+--  and c1='-977654322'
+--order by to_number(c3);
+"REM WORKSPACETAB18",Query72,,3
+--SELECT * FROM
+delete REPORT_TMP
+WHERE c1 LIKE '-9776%'
+"REM WORKSPACETAB19",Query59,,8
+delete report_tmp
+where session_id =  '00691358001';
+commit;
+
+--Exec planiranje_package.Transport_plan_otp_fab(  '00691358001', to_date('01.09.2011','dd.mm.yyyy'), to_date('01.09.2011','dd.mm.yyyy'));
+--Exec planiranje_package.Transport_plan_otp_mesta(  '00691358001', to_date('01.09.2011','dd.mm.yyyy'), to_date('01.09.2011','dd.mm.yyyy'));
+Exec planiranje_package.Transport_plan_otp_roba(  '00691358001', to_date('01.09.2011','dd.mm.yyyy'), to_date('01.09.2011','dd.mm.yyyy'));
+commit;
+"REM WORKSPACETAB20",DOKUMENT.sql,,105
+--10067 mag 91 umesto 6023 treba 9145
+
+--11787
+-- na 28
+SELECT   d.rowid,
+--d.datum_dok + d.valuta_placanja,
+D.*
+FROM
+dokument  d
+--VEZNI_DOK@sunce d
+--,
+--komentar d
+--FROM
+--stavka_Dok@sunce d --,
+--zavisni_troskovi d
+WHERE d.godina = 2011
+--and d.org_deo = 20
+--and d.VRSTA_DOK = 11 --and d.status = 4
+and (
+--         ( d.VRSTA_DOK = 1 and d.broj_dok in ('55')) --1351--
+--      or
+--          ( d.VRSTA_DOK =2 And d.BROJ_DOK in('1981')) --1351--
+--      or
+          ( d.VRSTA_DOK = 3 And d.BROJ_DOK in('1614')) --1351--
+--
+--      or
+--          ( d.VRSTA_DOK = 9 And d.BROJ_DOK in('222')) --1351--
+----
+----
+--      or
+--
+--          ( d.VRSTA_DOK = 10 And d.BROJ_DOK in('21959')) --1351--
+----
+----
+      or
+          ( d.VRSTA_DOK in(11) And d.BROJ_DOK in('2542')) --1351--
+      or
+          ( d.VRSTA_DOK in(61) And d.BROJ_DOK in('2542')) --1351--
+
+--or
+--          ( d.VRSTA_DOK in(73) And d.BROJ_DOK in('1854')) --1351--
+--or
+--          ( d.VRSTA_DOK in(74) And d.BROJ_DOK in('2191')) --1351--
+
+--
+    )
+--and proizvod in (116)
+--  and org_deo = 11
+
+--  and d.org_deo in (312)
+--  and datum_dok = to_date('04.09.2009','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----                   (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--         (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in(4199)
+--order by stavka
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+
+--order by to_number(proizvod)
+
+
+--and REALIZOVANO <> kolicina

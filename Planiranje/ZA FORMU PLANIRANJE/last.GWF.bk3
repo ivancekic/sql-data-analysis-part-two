@@ -1,0 +1,621 @@
+"REM WORKSPACETAB0","Uporedi regionalne i domaci",,23
+select * from
+(
+		Select proizvod,kolicina,
+						(
+						Select sum(kolicina)
+						from planiranje_STAVKA ps1
+						where
+						      ps1.plan_tip_id			= &c_tip_id
+						  and ps1.PLAN_CIKLUS_ID			= &c_ciklus_id
+						  and ps1.PLAN_period_ID			= &c_period_id
+						  and ps1.plan_trajanje_id		= &c_trajanje_id
+						  and ps1.broj_dok				in (&c_broj_dok)
+						  and ps1.proizvod=ps.proizvod
+						) kol_sum
+		from planiranje_STAVKA ps
+		where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok1)
+)
+where kolicina<> kol_sum
+"REM WORKSPACETAB1","NADJI TIPOVE PROIZVODA",,140
+--SELECT DISTINCT DOBAVLJAC, PPOSLOVNIPARTNER.NAZIV(DOBAVLJAC) NAZIV
+--FROM
+--(
+Select
+  	   ps.PROIZVOD, p.jed_mere, p.planska_JM, p.faktor_planske
+     , k.dobavljac, k.nabavna_sifra
+     , ps.BROJ_SASTAVNICE
+     , SUM(nvl(KOLICINA,0)) 							KOLICINA_SKL_JM
+           , SUM(nvl(KOLICINA,0) * faktor_planske) 			KOLICINA
+     , SUM(nvl(OPTIMALNA_ZALIHA,0)) 					OPTIMALNA_ZALIHA_SKL_JM
+     , SUM(nvl(OPTIMALNA_ZALIHA,0) * faktor_planske)	OPTIMALNA_ZALIHA
+     , SUM(nvl(PLANIRANA_PRODAJA,0))					PLANIRANA_PRODAJA_SKL_JM
+     , SUM(nvl(PLANIRANA_PRODAJA,0) * faktor_planske)	PLANIRANA_PRODAJA
+	, Case When k.dobavljac='206' Then
+	         (Select sifra from proizvod@rubin where sifra = k.nabavna_sifra)
+	  when k.dobavljac='594' Then
+	         (Select sifra from proizvod@pekara where sifra = k.nabavna_sifra)
+	  when k.dobavljac='138' Then
+	         (Select sifra from proizvod@ratar where sifra = k.nabavna_sifra)
+	  when k.dobavljac='172' Then
+	         (Select sifra from proizvod@albus where sifra = k.nabavna_sifra)
+	  when k.dobavljac='342' Then
+	         (Select sifra from proizvod@vital where sifra = k.nabavna_sifra)
+	  when k.dobavljac='1226' Then
+	         (Select sifra from proizvod@medela where sifra = k.nabavna_sifra)
+	  when k.dobavljac='965' Then
+	         (Select sifra from proizvod@sunce where sifra = k.nabavna_sifra)
+	  Else
+	         ''
+	  End pro_fab
+	, Case When k.dobavljac='206' Then
+	         (Select TIP_PROIZVODA from proizvod@rubin where sifra = k.nabavna_sifra)
+	  when k.dobavljac='594' Then
+	         (Select TIP_PROIZVODA from proizvod@pekara where sifra = k.nabavna_sifra)
+	  when k.dobavljac='138' Then
+	         (Select TIP_PROIZVODA from proizvod@ratar where sifra = k.nabavna_sifra)
+	  when k.dobavljac='172' Then
+	         (Select TIP_PROIZVODA from proizvod@albus where sifra = k.nabavna_sifra)
+	  when k.dobavljac='342' Then
+	         (Select TIP_PROIZVODA from proizvod@vital where sifra = k.nabavna_sifra)
+	  when k.dobavljac='1226' Then
+	         (Select TIP_PROIZVODA from proizvod@medela where sifra = k.nabavna_sifra)
+	  when k.dobavljac='965' Then
+	         (Select TIP_PROIZVODA from proizvod@sunce where sifra = k.nabavna_sifra)
+	  Else
+	         NULL
+	  End pro_fab_TIP
+
+	, Case When k.dobavljac='206' Then
+	         (Select TP.NAZIV from proizvod@rubin P, TIP_PROIZVODA@RUBIN TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  when k.dobavljac='594' Then
+	         (Select TP.NAZIV from proizvod@pekara P, TIP_PROIZVODA@PEKARA TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  when k.dobavljac='138' Then
+	         (Select TP.NAZIV from proizvod@ratar P, TIP_PROIZVODA@RATAR TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  when k.dobavljac='172' Then
+	         (Select TP.NAZIV from proizvod@albus P, TIP_PROIZVODA@ALBUS TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  when k.dobavljac='342' Then
+	         (Select TP.NAZIV from proizvod@vital P, TIP_PROIZVODA@VITAL TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  when k.dobavljac='1226' Then
+	         (Select TP.NAZIV from proizvod@medela P, TIP_PROIZVODA@MEDELA TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  when k.dobavljac='965' Then
+	         (Select TP.NAZIV from proizvod@sunce P, TIP_PROIZVODA@SUNCE TP where P.sifra = k.nabavna_sifra AND TP.SIFRA=P.TIP_PROIZVODA)
+	  Else
+	         NULL
+	  End pro_fab_TIP_NAZIV
+
+From planiranje_stavka ps
+    , proizvod p
+	,
+	(
+		Select proizvod, DOBAVLJAC, NABAVNA_SIFRA
+		From
+		( Select proizvod
+               , decode (dobavljac, '342',(decode (length(nabavna_sifra),4,'965',dobavljac))
+                                           , '965',(decode (length(nabavna_sifra),6,'342',dobavljac))
+                                  , dobavljac)
+                 DOBAVLJAC
+
+		       , NABAVNA_SIFRA
+		  From katalog
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &n_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &n_ciklus_id
+		                       and ps.PLAN_period_ID		= &n_period_id
+		                       and ps.plan_trajanje_id		= &n_trajanje_id
+		                       and ps.broj_dok				in (1,2)
+		                     Group BY PROIZVOD
+		                     )
+		  Union
+
+		  Select proizvod
+               , decode (dobavljac, '342',(decode (length(nabavna_sifra),4,'965',dobavljac))
+                                           , '965',(decode (length(nabavna_sifra),6,'342',dobavljac))
+                                  , dobavljac)
+                 DOBAVLJAC
+
+		       , NABAVNA_SIFRA
+		  From katalog_tranzit
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &n_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &n_ciklus_id
+		                       and ps.PLAN_period_ID		= &n_period_id
+		                       and ps.plan_trajanje_id		= &n_trajanje_id
+		                       and ps.broj_dok				in (1,2)
+		                     Group BY PROIZVOD
+		                     )
+		)
+		Group by proizvod, DOBAVLJAC, NABAVNA_SIFRA
+	) k
+Where
+
+      ps.plan_tip_id			= &n_tip_id
+  and ps.PLAN_CIKLUS_ID			= &n_ciklus_id
+  and ps.PLAN_period_ID			= &n_period_id
+  and ps.plan_trajanje_id		= &n_trajanje_id
+  and ps.broj_dok				in (1,2)
+  and ps.proizvod=k.proizvod    (+)
+  and k.dobavljac is not null
+  and p.sifra = ps.proizvod
+--			  and k.dobavljac=nvl(cFirma,k.dobavljac)
+           and (
+                   (&cFirma is not null And k.dobavljac = Planiranje_package.Vrati_firma_od_linka(&cFirma) )
+                or (&cFirma is null     And k.dobavljac = k.dobavljac)
+               )
+
+AND P.SIFRA=4538
+
+Group by ps.PROIZVOD, k.dobavljac, k.nabavna_sifra, ps.BROJ_SASTAVNICE
+, p.jed_mere, p.planska_JM, p.faktor_planske
+
+Order by to_number(dobavljac) desc, to_number(nabavna_sifra), ps.PROIZVOD
+
+--)
+--Order by to_number(dobavljac) desc
+"REM WORKSPACETAB2",Query14,,2
+select rowid, r.* from REPORT_TMP r
+WHERE C1 LIKE '-98765%'
+"REM WORKSPACETAB3",Query18,,12
+
+         Select C4,  f.id,f.naziv, f.sifra_u_inveju, m.ul01, m.iz01, substr(m.iz01,2) moj_link
+         From Report_tmp r, FIRME F
+            , mapiranje M
+         Where r.Session_id=cSess
+           And r.C1 in ('-9876543230',-98765432401)
+           And r.C2 in ('-9876543230',-98765432401)
+           And r.C3 in ('-9876543230',-98765432401)
+           And r.c4=f.SIFRA_U_INVEJU
+           And F.ID=nvl(M.UL01,f.id)
+           And m.modul='DB_LINKOVI'
+           And nvl(cFirma,substr(m.iz01,2)) = substr(m.iz01,2);
+"REM WORKSPACETAB4","insert stavki u fabriku",,55
+--Insert into planiranje_stavka
+--(
+--	  PLAN_TIP_ID, PLAN_CIKLUS_ID, PLAN_PERIOD_ID, PLAN_TRAJANJE_ID, BROJ_DOK, VARIJANTA_ID
+--	, STAVKA_ID, PROIZVOD, BROJ_SASTAVNICE, KOLICINA, STATUS_ID, OPTIMALNA_ZALIHA, PLANIRANA_PRODAJA
+--	, KORISNIK, DATUM
+--)
+--
+--(
+	select &c_tip_id, &c_ciklus_id, &c_period_id, &c_trajanje_id, &BROJ_DOK_new, &VARIJANTA_ID_new
+	     , rownum, BROJ_SASTAVNICE,KOLICINA,1,OPTIMALNA_ZALIHA,PLANIRANA_PRODAJA
+	     , user, sysdate
+	from
+	(
+		Select
+					 PROIZVOD
+				,BROJ_SASTAVNICE
+				,SUM(KOLICINA) KOLICINA
+
+		        ,SUM(OPTIMALNA_ZALIHA) OPTIMALNA_ZALIHA
+		        ,SUM(PLANIRANA_PRODAJA) PLANIRANA_PRODAJA
+		from planiranje_stavka ps
+
+		where
+
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (1,2)
+
+          and proizvod in ( Select proizvod
+					        From
+							( Select proizvod
+							  From katalog
+							  Where dobavljac = '1226'
+
+							  Union
+
+							  Select proizvod
+							  From katalog_tranzit
+							  Where dobavljac = '1226'
+
+		                    )
+		                  )
+
+
+
+		GROUP BY PROIZVOD
+			   , BROJ_SASTAVNICE
+	)
+	order by TO_NUMBER(PROIZVOD), BROJ_SASTAVNICE
+--)
+----)
+----group by proizvod
+----having count(*) > 1
+"REM WORKSPACETAB5","insert u fab zag i var",,63
+Select
+  	   k.dobavljac, pposlovnipartner.naziv(k.dobavljac) naziv
+
+From planiranje_stavka ps
+	,
+	(
+		Select proizvod, DOBAVLJAC, NABAVNA_SIFRA
+		From
+		( Select proizvod
+		       , Case when DOBAVLJAC = 342 and length(nabavna_sifra)=4 then
+		                   '965'
+		         Else
+		                   DOBAVLJAC
+		         End DOBAVLJAC
+		       , NABAVNA_SIFRA
+		  From katalog
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &c_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+		                       and ps.PLAN_period_ID		= &c_period_id
+		                       and ps.plan_trajanje_id		= &c_trajanje_id
+		                       and ps.broj_dok				in (1,2)
+		                     Group BY PROIZVOD
+		                     )
+		  Union
+
+		  Select proizvod
+		       , Case when DOBAVLJAC = 342 and length(nabavna_sifra)=4 then
+		                   '965'
+		         Else
+		                   DOBAVLJAC
+		         End DOBAVLJAC
+		       , NABAVNA_SIFRA
+		  From katalog_tranzit
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &c_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+		                       and ps.PLAN_period_ID		= &c_period_id
+		                       and ps.plan_trajanje_id		= &c_trajanje_id
+		                       and ps.broj_dok				in (1,2)
+		                     Group BY PROIZVOD
+		                     )
+		)
+		Group by proizvod, DOBAVLJAC, NABAVNA_SIFRA
+	) k
+Where
+
+      ps.plan_tip_id			= &c_tip_id
+  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+  and ps.PLAN_period_ID			= &c_period_id
+  and ps.plan_trajanje_id		= &c_trajanje_id
+  and ps.broj_dok				in (1,2)
+  and ps.proizvod=k.proizvod (+)
+  and k.dobavljac is not null
+Group by k.dobavljac
+
+Order by to_number(dobavljac) desc
+"REM WORKSPACETAB6","Prebaci u Fabrike",,32
+----rollback;
+----
+--Delete report_tmp
+--where C1 like '-9876543%';
+--Commit;
+
+--Exec planiranje_package.GenerisiPlanoveFirmiSaInv (n_Tip_Id Number, n_Ciklus_Id Number, n_Period_Id Number, n_Trajanje_Id)
+Exec planiranje_package.GenerisiPlanoveFirmiSaInv (       2, 2011, 3, 11
+
+				  	                                    , 2              -- p_new_plan_tip_id in number
+					                                    , 2011           -- p_new_plan_ciklus_id in number
+					                                    , 3              -- p_new_plan_period_id in number
+					                                    , 11             -- p_new_plan_trajanje_id in number
+					                                    , 1              -- p_new_broj_dok in number
+					                                    , 'Plan prodaje i optimalnih zaliha za novembar 2011.g.'   -- p_new_opis_plana in varchar2
+
+					                                    , 4   -- p_new_org_deo_id in number
+				                                        , 1   -- p_new_varijanta in number
+				                                        , 'V1'   -- p_new_opis in varchar2
+--				                                        , null                      -- na kojoj firmi da kopira plan NULL je sve
+				                                        , 'medela'                  -- na kojoj firmi da kopira plan
+				                                        , 'D'                     -- ako je u firmi postoji plan u radnoj verziji da li da ga obrise
+                                                   );
+
+Commit;
+
+Select rowid, r.* from report_tmp r
+where C1 like '-9876543%'
+order by c1
+;
+
+--Vrati_firma_od_linka
+"REM WORKSPACETAB7",Query23,,2
+Select proizvod from planiranje_stavka
+where 
+"REM WORKSPACETAB8",Query22,,1
+select * from APLIKACIJA_FORME
+"REM WORKSPACETAB9",DOKUMENT.sql,,89
+--11787
+-- na 28
+SELECT   d.rowid,
+--d.datum_dok + d.valuta_placanja,
+D.*
+FROM
+zavisni_troskovi_stavke  d
+--VEZNI_DOK d
+--,
+--komentar d
+--FROM
+--stavka_Dok d --,
+--zavisni_troskovi d
+WHERE d.godina = 2011
+--and d.org_deo = 20
+--and d.VRSTA_DOK = 11 --and d.status = 4
+and (
+--         ( d.VRSTA_DOK = 11 and d.broj_dok in ('11482')) --1351--
+--      or
+----          ( d.VRSTA_DOK =14 And substr(d.BROJ_DOK,1,5) in('10397')) --1351--
+--      or
+--          ( d.VRSTA_DOK = 10 And d.BROJ_DOK in('1120')) --1351--
+--      or
+          ( d.VRSTA_DOK = 2 And d.BROJ_DOK in('4725')) --1351--
+
+
+      or
+          ( d.VRSTA_DOK in(3) And d.BROJ_DOK in('22745')) --1351--
+
+    )
+--and proizvod in (116)
+--  and org_deo = 11
+
+--  and d.org_deo in (312)
+--  and datum_dok = to_date('04.09.2009','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----                   (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--         (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in(4199)
+--order by stavka
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+
+--order by to_number(proizvod)
+
+
+--and REALIZOVANO <> kolicina
+"REM WORKSPACETAB10",Query19,,1
+select * from planski_rabat_po_grupama
+"REM WORKSPACETAB11",Query17,,11
+         Select C4,  f.id,f.naziv, f.sifra_u_inveju, m.ul01, m.iz01, substr(m.iz01,2) moj_link
+         From Report_tmp r, FIRME F
+            , mapiranje M
+         Where r.Session_id=   '00680F560001'
+           And r.C1='-9876543230'
+           And r.C2='-9876543230'
+           And r.C3='-9876543230'
+           And r.c4=f.SIFRA_U_INVEJU
+           And F.ID=nvl(M.UL01,f.id)
+           And m.modul='DB_LINKOVI'
+           And nvl(&cFirma,substr(m.iz01,2)) = substr(m.iz01,2);
+"REM WORKSPACETAB12",Query24,,2
+select * from planiranje_mapiranje
+where vrsta='PORUKE_U_REPORT_TMP'
+"REM WORKSPACETAB13",Query15,,6
+select rowid , r.* from report_tmp r
+where
+
+ c1 like '-9555%'
+ or  c1 =  '-9876'
+--  and session_id like '%2%'
+"REM WORKSPACETAB14",Query21,,1
+exec      planiranje_package.BrisiIzReportTmp('002A0DF30001', '-955511','-955511','-955511',null,null)  ;
+"REM WORKSPACETAB15",pro_u_firmi,,70
+select PROIZVOD,BROJ_SASTAVNICE,KOLICINA,OPTIMALNA_ZALIHA,PLANIRANA_PRODAJA,DOBAVLJAC,dob_naz,NABAVNA_SIFRA,NAZIV_PRO_FIR
+     , planiranje_package.Provera_pro_firma (NABAVNA_SIFRA,dob_naz,'NAZ')
+From
+(
+	Select
+				 ps.PROIZVOD
+			,BROJ_SASTAVNICE
+			,SUM(KOLICINA) KOLICINA
+
+	        ,SUM(OPTIMALNA_ZALIHA) OPTIMALNA_ZALIHA
+	        ,SUM(PLANIRANA_PRODAJA) PLANIRANA_PRODAJA
+
+	        , k.dobavljac
+	, nabavna_sifra
+	, 	              case when k.dobavljac='206' Then
+		                        (Select naziv from proizvod@rubin where sifra = k.nabavna_sifra)
+		                   when k.dobavljac='594' Then
+	                            (Select naziv from proizvod@pekara where sifra = k.nabavna_sifra)
+		                   when k.dobavljac='138' Then
+		                        (Select naziv from proizvod@ratar where sifra = k.nabavna_sifra)
+		                   when k.dobavljac='172' Then
+		                        (Select naziv from proizvod@albus where sifra = k.nabavna_sifra)
+		                   when k.dobavljac='342' Then
+		                        (Select naziv from proizvod@vital where sifra = k.nabavna_sifra)
+		                   when k.dobavljac='1226' Then
+		                        (Select naziv from proizvod@medela where sifra = k.nabavna_sifra)
+		                   when k.dobavljac='965' Then
+		                        (Select naziv from proizvod@sunce where sifra = k.nabavna_sifra)
+		              End naziv_pro_fir
+
+   ,				  case when    k.dobavljac='206' Then
+					         'rubin'
+					  when k.dobavljac='594' Then
+					          'pekara'
+					  when k.dobavljac='138' Then
+					          'ratar'
+					  when k.dobavljac='172' Then
+					          'albus'
+					  when k.dobavljac='342' Then
+					          'vital'
+					  when k.dobavljac='1226' Then
+					          'medela'
+					  when k.dobavljac='965' Then
+					          'sunce'
+					  Else
+					          'nema'
+					  End dob_naz
+
+	from planiranje_stavka ps
+	   , (select proizvod, dobavljac,nabavna_sifra from katalog) k
+
+	where
+
+	      ps.plan_tip_id			= &c_tip_id
+	  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+	  and ps.PLAN_period_ID			= &c_period_id
+	  and ps.plan_trajanje_id		= &c_trajanje_id
+	  and ps.broj_dok				in (1)
+
+	        and ps.proizvod=k.proizvod (+)
+
+	GROUP BY ps.PROIZVOD
+		   , BROJ_SASTAVNICE
+
+		   , k.proizvod, k.dobavljac, k.nabavna_sifra
+)
+Order by dobavljac asc
+
+
+
+"REM WORKSPACETAB16",REPORT_LINKOVI-FIRME,,10
+         Select C4,  f.id,f.naziv, f.sifra_u_inveju, m.ul01, m.iz01
+         From Report_tmp r, FIRME F
+           , (Select UL01,iz01 from mapiranje where modul='DB_LINKOVI') M
+         Where r.Session_id='005A0EDF0001'
+           And r.C1='-987654323'
+           And r.C2='-987654323'
+           And r.C3='-987654323'
+           And r.c4=f.SIFRA_U_INVEJU
+           And F.ID=M.UL01
+         ;
+"REM WORKSPACETAB17",Planiranje_package,,31
+Select Planiranje_package.ProveriLink('medela') link_prov
+--     , Planiranje_package.ProveriReportTmp ('007612C80001', '-5', '-987654324', '-987654324', NULL, 'X')  uk
+     , Planiranje_package.ProveriReportTmp ('005C20E90001', '-987654325', '-987654325', '-987654325',null,null) firme
+     , Planiranje_package.ProveriPlanZag(  'sunce', 2, 2011, 3, 1,15) plan_status
+--     , Planiranje_package.Provera_pro_firma ('423', 'medela', 'PRO') pro_fir
+--     , Planiranje_package.Provera_pro_firma ('a', 2, 2011, 3, 10, '1226') pro_fir
+--     , Planiranje_package.Provera_pro_nema_kat ('007612C80001', 2, 2011, 3, 10, 'null')
+     , PMapiranje.MOJE_PLAN_MAPIR('PORUKE_U_REPORT_TMP',-9876543230,-9876543230) dugme
+
+     , SUBSTR( PMapiranje.MOJE_PLAN_MAPIR_LISTA('PORUKE_U_REPORT_TMP',-987654322, -987654322)
+              ,2
+              , (LENGTH( PMapiranje.MOJE_PLAN_MAPIR_LISTA('PORUKE_U_REPORT_TMP',-987654322, -987654322)) -2)
+             ) PORUKA
+
+
+     , Planiranje_Package.Vrati_firma_od_linka('sunce') firma
+
+     , Planiranje_package.ProveriReportTmp ('003C0D1B0001', '-987654322', '-987654322', '-987654322','-987654322',null) pro_bez_kat
+     , Planiranje_package.ProveriReportTmp ('003C0D1B0001', '-9876543230', '-9876543230', '-9876543230',null,upper('vital')) ima_link
+
+     , Planiranje_package.ProveriReportTmp ('003C0D1B0001', '-9876543241', '-9876543241', '-9876543241',null,upper('vital')) nema_plan
+
+     , Planiranje_package.ProveriReportTmp ('003C0D1B0001', '-9876543240', '-9876543240', '-9876543240',null,upper('vital')) ima_plan_rv
+
+     , Planiranje_package.ProveriReportTmp ('003C0D1B0001', '-987654326', '-987654326', '-987654326',null,null) fale_pro_fab
+
+     , to_number(planiranje_package.ProveriPlanZag(  'VITAL', 2, 2011, 3, 1,15))     prov_zag
+, planiranje_package.ProveriLink('vital') prov_l
+
+
+from dual
+"REM WORKSPACETAB18",planiranje_mapiranje,,4
+select *
+from PLANIRANJE_MAPIRANJE
+WHERE RED_BROJ LIKE'-%'
+order by vrsta, SUBSTR(RED_BROJ,1,10)-- DESC
+"REM WORKSPACETAB19","kopiranje tip u tip",,1
+SELECT * FROM planiranje_tip_kopi_prava
+"REM WORKSPACETAB20",delimiter,,38
+Declare
+
+	cTxt varchar2(2000):= 'ab1,ab2,aa3';
+
+	cSeparator Varchar2(100);	-- znak delimiter
+
+	nRBrSep    Number := 1;		--
+
+	nPozSepOld Number := 1;		--
+	nRedLen    Number := 0;
+	cClan      Varchar2(100);
+	nClanLen   Number := 0;
+
+Begin
+
+	cSeparator := chr(44);
+    nClanLen := length(cTxt);
+    nPozSepOld := 1;
+
+	While instr(cTXT,cSeparator,1,nRBrSep) > 0
+	Loop
+
+		nClanLen := instr(cTXT,cSeparator,1,nRBrSep);
+		cClan := substr(cTxt,nPozSepOld,nClanLen - nPozSepOld);
+    	dbms_output.put_line('rb.'||nRBrSep||' clan:'||cClan|| ' duz clana:'||nClanLen || ' old poz delim.:'||nPozSepOld);
+		nPozSepOld := instr(cTXT,cSeparator,1,nRBrSep) + 1 ;
+		nRBrSep := nRBrSep + 1;
+
+	End loop;
+
+
+    cClan := substr(cTxt, -(length(cTxt) - nPozSepOld + 1));
+    cClan := rtrim(ltrim(cClan));
+
+	dbms_output.put_line('rb.'||nRBrSep||' clan:'||cClan|| ' duz clana:'||nClanLen || ' old poz delim.:'||nPozSepOld);
+
+End;
+
+"REM WORKSPACETAB21",Query22,,2
+Select instr('aa,bb',',',1,1)
+from dual
+"REM WORKSPACETAB22",Query21,,2
+select chr(44)
+from dual

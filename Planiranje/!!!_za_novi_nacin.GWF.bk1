@@ -1,0 +1,24 @@
+"REM WORKSPACETAB0",Query1,,14
+VARIABLE tabela REFCURSOR;
+
+Declare
+--  myRecord analozi@mysql%ROWTYPE;
+Begin
+    planiranje_package_1.planiranje_view_rc (
+                                              3,-- rcp_plan_tip_id IN Number,
+                                              2011,--rcp_plan_ciklus_id IN Number,
+                                              3,--rcp_plan_period_id IN Number,
+                                              7,--rcp_plan_trajanje_id IN Number,
+                                              :tabela
+                                            );
+--    dbms_output.put_line(:tabela."IDSpecPrevozaNalozi"||' '||:tabela."SpecPrevozaID"||' '||:tabela."BrojNaloga"||' '||:tabela."Kolicina");
+End;
+"REM WORKSPACETAB1",Query3,,1
+desc PLANIRANJE_VIEW
+"REM WORKSPACETAB2",Query2,,6
+Select * from planiranje_view
+where
+plan_tip_id = 3
+and plan_ciklus_id =2011
+and plan_period_id = 3
+and plan_trajanje_id=7

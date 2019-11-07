@@ -1,0 +1,1197 @@
+"REM WORKSPACETAB0","vidi zag",,87
+----create table cuvaj_plan_zag_10_mes
+----as
+--select 'INV' firma, ps.*
+--From planiranje_ZAGLAVLJE ps
+--Where
+--		      ps.plan_tip_id			= &c_tip_id
+--		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+--		  and ps.PLAN_period_ID			= &c_period_id
+--		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+--		  and ps.broj_dok				in (&c_broj_dok)
+--
+--UNION
+--
+select 'rub' firma, ps.*
+From planiranje_ZAGLAVLJE@RUBIN ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+union
+select 'pek' firma, ps.*
+From planiranje_ZAGLAVLJE@pekara ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+union
+
+select 'rat' firma, ps.*
+From planiranje_ZAGLAVLJE@ratar ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+union
+
+select 'alb' firma, ps.*
+From planiranje_ZAGLAVLJE@albus ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+union
+
+select 'vit' firma, ps.*
+From planiranje_ZAGLAVLJE@vital ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+union
+
+select 'med' firma, ps.*
+From planiranje_ZAGLAVLJE@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+union
+
+select 'sun' firma, ps.*
+From planiranje_ZAGLAVLJE@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= nvl(&c_trajanje_id,ps.plan_trajanje_id)
+		  and ps.broj_dok				in (nvl(&c_broj_dok,ps.broj_dok))
+
+"REM WORKSPACETAB1",Query8,,16
+Select * from cuvaj_plan_zag_10_mes
+--where firma = 'med'
+--and broj_dok=1
+--and proizvod not in (select proizvod
+--From planiranje_stavka@medela ps
+--Where
+--		      ps.plan_tip_id			= &c_tip_id
+--		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+--		  and ps.PLAN_period_ID			= &c_period_id
+--		  and ps.plan_trajanje_id		= &c_trajanje_id
+--
+--
+--
+--
+--		  and ps.broj_dok				in (&c_broj_dok)
+--		  )
+"REM WORKSPACETAB2",Query8,,89
+Select
+  	   ps.PROIZVOD
+     , k.dobavljac, k.nabavna_sifra
+     , ps.BROJ_SASTAVNICE
+     , SUM(nvl(KOLICINA,0)) KOLICINA
+
+     , SUM(nvl(OPTIMALNA_ZALIHA,0)) OPTIMALNA_ZALIHA
+     , SUM(nvl(PLANIRANA_PRODAJA,0)) PLANIRANA_PRODAJA
+
+, case
+--      when dobavljac='965' then
+      when dobavljac='1226' then
+        (select naziv from proizvod@medela where sifra = nabavna_sifra)
+--      when dobavljac='172' then
+--      when dobavljac='206' then
+--      when dobavljac='342' then
+--      when dobavljac='594' then
+--      when dobavljac='138' then
+
+  end pro
+
+
+From planiranje_stavka ps
+	,
+	(
+		Select proizvod, DOBAVLJAC, NABAVNA_SIFRA
+		From
+		( Select proizvod
+               , decode (dobavljac,
+                 '342',(decode (length(nabavna_sifra)
+                                    ,4,'965'
+                                    ,dobavljac
+                               )
+                        )
+               , dobavljac) dobavljac
+
+		       , NABAVNA_SIFRA
+		  From katalog
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &c_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+		                       and ps.PLAN_period_ID		= &c_period_id
+		                       and ps.plan_trajanje_id		= &c_trajanje_id
+		                       and ps.broj_dok				in (1)
+		                     Group BY PROIZVOD
+		                     )
+		  Union
+
+		  Select proizvod
+               , decode (dobavljac,
+                 '342',(decode (length(nabavna_sifra)
+                                    ,4,'965'
+                                    ,dobavljac
+                               )
+                        )
+               , dobavljac) dobavljac
+
+		       , NABAVNA_SIFRA
+		  From katalog_tranzit
+		  Where dobavljac in (select SIFRA_U_INVEJU from firme where SIFRA_U_INVEJU is not null)
+		    and proizvod in (Select PROIZVOD
+		                     From planiranje_stavka ps
+		                     Where
+		                            ps.plan_tip_id			= &c_tip_id
+		                       and ps.PLAN_CIKLUS_ID		= &c_ciklus_id
+		                       and ps.PLAN_period_ID		= &c_period_id
+		                       and ps.plan_trajanje_id		= &c_trajanje_id
+		                       and ps.broj_dok				in (2)
+		                     Group BY PROIZVOD
+		                     )
+		)
+		Group by proizvod, DOBAVLJAC, NABAVNA_SIFRA
+	) k
+Where
+
+      ps.plan_tip_id			= &c_tip_id
+  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+  and ps.PLAN_period_ID			= &c_period_id
+  and ps.plan_trajanje_id		= &c_trajanje_id
+  and ps.broj_dok				in (1,2)
+  and ps.proizvod=k.proizvod    (+)
+  and k.dobavljac is not null
+Group by ps.PROIZVOD, k.dobavljac, k.nabavna_sifra, ps.BROJ_SASTAVNICE
+
+Order by to_number(dobavljac) desc, to_number(nabavna_sifra), ps.PROIZVOD
+
+"REM WORKSPACETAB3",Query9,,9
+Select proizvod, dobavljac, nabavna_sifra from katalog
+where dobavljac= '1226'
+  and proizvod=4439
+
+union
+
+Select proizvod, dobavljac, nabavna_sifra from katalog_tranzit
+where dobavljac= '1226'
+  and proizvod=4439
+"REM WORKSPACETAB4","vidi var",,87
+--create table cuvaj_plan_var_10_mes
+--as
+--select 'inv' firma, ps.*
+--From planiranje_varijanta ps
+--Where
+--		      ps.plan_tip_id			= &c_tip_id
+--		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+--		  and ps.PLAN_period_ID			= &c_period_id
+--		  and ps.plan_trajanje_id		= &c_trajanje_id
+----		  and ps.broj_dok				in (&c_broj_dok)
+--union
+
+select 'rub' firma, ps.*
+From planiranje_varijanta@RUBIN ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'pek' firma, ps.*
+From planiranje_varijanta@pekara ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'rat' firma, ps.*
+From planiranje_varijanta@ratar ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'alb' firma, ps.*
+From planiranje_varijanta@albus ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'vit' firma, ps.*
+From planiranje_varijanta@vital ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'med' firma, ps.*
+From planiranje_varijanta@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'sun' firma, ps.*
+From planiranje_varijanta@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+"REM WORKSPACETAB5",DOKUMENT.sql,,89
+--11787
+-- na 28
+SELECT   d.rowid,
+--d.datum_dok + d.valuta_placanja,
+D.*
+FROM
+--dokument  d
+--VEZNI_DOK d
+--,
+--komentar d
+--FROM
+stavka_Dok d --,
+--zavisni_troskovi d
+WHERE d.godina = 2011
+--and d.org_deo = 20
+--and d.VRSTA_DOK = 11 --and d.status = 4
+and (
+--         ( d.VRSTA_DOK = 11 and d.broj_dok in ('11482')) --1351--
+--      or
+----          ( d.VRSTA_DOK =14 And substr(d.BROJ_DOK,1,5) in('10397')) --1351--
+--      or
+--          ( d.VRSTA_DOK = 10 And d.BROJ_DOK in('1120')) --1351--
+--      or
+          ( d.VRSTA_DOK = 3 And d.BROJ_DOK in('17085')) --1351--
+--
+--
+--      or
+--          ( d.VRSTA_DOK in(2) And d.BROJ_DOK in('3961')) --1351--
+
+    )
+--and proizvod in (116)
+--  and org_deo = 11
+
+--  and d.org_deo in (312)
+--  and datum_dok = to_date('04.09.2009','dd.mm.yyyy')
+----and stavka = 3
+----  and
+----      (
+------          ( d.vrsta_dok  in (73)  )
+----                   (d.vrsta_dok  = 11 and d.broj_dok in(14014,14015) )
+--       or
+--         (d.vrsta_dok  = 3 and d.tip_dok = 116)
+
+----d.vrsta_dok = 3
+----        or
+----          ( d.vrsta_dok  = 3 and broj_dok in (6666) )
+--       )
+----  and d.godina    = vd.godina and d.vrsta_dok = vd.vrsta_dok and d.broj_dok  = vd.broj_dok and vd.za_vrsta_dok = 14
+--And d.broJ_dok in (9021)
+--AND D.DATUM_VALUTE IS NULL
+-- ORG_DEO = 67
+--And d.broJ_dok1 in (507,508,524)
+--and to_char(datum_unosa, >
+-- 21101 -- 18379
+--and tip_dok = 222
+--and status = 0
+--and datum_dok > to_date('17.04.2008','dd.mm.yyyy')
+
+--order by to_number(broj_dok1)
+
+--union
+--
+--SELECT --D.BROJ_DOK
+--       d.rowid , --d.* , pposlovnipartner.naziv(d.ppartner)--max (to_number(broj_dok1))--d.ROWID ,
+--       d.* --spec_rabat , VRSTA_DOK , BROJ_DOK , org_deo , broj_dok1 ,DATUM_DOK , mesto_Isporuke, poslovnica
+--FROM DOKUMENT  d
+--WHERE d.GODINA       = 2007
+--  AND d.VRSTA_DOK    = 11
+--  And d.broj_dok     in ( 18360 )
+----  AND  d.broj_dok1     in (351,352,354,355,357)
+----  and  d.org_deo = 445
+--
+--AND PPARTNER = '1803'
+--AND PROIZVOD in(4199)
+--order by stavka
+----order by to_number(broj_dok1)
+--order by to_number (proizvod )
+--                                                26.01.2008 19:16:55
+--                                                11.02.2008 16:17:21 PS
+
+-- za proizvod 4928 :  176.85921348314606741573033707865
+-- za proizvod 4929 :  156.83375218150087260034904013962
+-- za proizvod 4930 :  121.66043195063421323277339732602
+-- za proizvod 4931 :  121.66043195063421323277339732602
+
+--order by to_number(proizvod)
+
+
+--and REALIZOVANO <> kolicina
+"REM WORKSPACETAB6","vidi stav",,80
+--create table cuvaj_plan_stav_10_mes
+--as
+select * from
+(
+select 'rub' firma, ps.*
+From planiranje_stavka@RUBIN ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'pek' firma, ps.*
+From planiranje_stavka@pekara ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'rat' firma, ps.*
+From planiranje_stavka@ratar ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'alb' firma, ps.*
+From planiranje_stavka@albus ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'vit' firma, ps.*
+From planiranje_stavka@vital ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'med' firma, ps.*
+From planiranje_stavka@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+
+union
+
+select 'sun' firma, ps.*
+From planiranje_stavka@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+)
+where firma = 'rat'
+"REM WORKSPACETAB7",Query9,,12
+select *
+From planiranje_zaglavlje@medela ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+
+
+
+
+		  and ps.broj_dok				in (&c_broj_dok)
+"REM WORKSPACETAB8","Pazi BRISANJE",,88
+-- STAVKE
+delete planiranje_stavka@RUBIN ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@pekara ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@ratar ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@albus ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@vital ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@medela ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_stavka@sunce ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+-----------------------
+-- VARIJANTA
+delete planiranje_varijanta@RUBIN ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@pekara ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@ratar ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@albus ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@vital ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@medela ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_varijanta@sunce ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+-------------------------
+-- ZAGLAVLJE
+delete planiranje_zaglavlje@RUBIN ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@pekara ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@ratar ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@albus ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@vital ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@medela ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+delete planiranje_zaglavlje@sunce ps
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+"REM WORKSPACETAB9","UPDATE ZAGLAVLJA",,51
+
+-- ZAGLAVLJE
+--UPDATE planiranje_zaglavlje@RUBIN ps
+----SET KREIRAO_USER = 'INVEJ', OVERIO_USER= 'INVEJ'
+----  , KREIRAO_DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+--set status_ID=0
+--Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+--  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_zaglavlje@pekara ps
+SET KREIRAO_USER = 'INVEJ', OVERIO_USER= 'INVEJ'
+  , KREIRAO_DATUM = TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI')
+--set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+----UPDATE planiranje_zaglavlje@ratar ps
+------SET KREIRAO_USER = 'RATAR', OVERIO_USER= 'RATAR'
+------  , KREIRAO_DATUM = TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI')
+------
+----set status_ID=0
+----Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+----  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_zaglavlje@albus ps
+SET KREIRAO_USER = 'INVEJ', OVERIO_USER= 'INVEJ'
+  , KREIRAO_DATUM = TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI')
+--set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_zaglavlje@vital ps
+SET KREIRAO_USER = 'VITAL', OVERIO_USER= 'VITAL'
+  , KREIRAO_DATUM = TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI')
+--set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_zaglavlje@medela ps
+SET KREIRAO_USER = 'MEDELA', OVERIO_USER= 'MEDELA'
+  , KREIRAO_DATUM = TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI')
+--set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_zaglavlje@sunce ps
+SET KREIRAO_USER = 'SUNCE', OVERIO_USER= 'SUNCE'
+  , KREIRAO_DATUM = TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.09.2011 14:26','DD.MM.YYYY HH24:MI')
+--set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+"REM WORKSPACETAB10",Query16,,14
+UPDATE planiranje_zaglavlje@sunce ps
+--SET KREIRAO_USER = 'INVEJ', OVERIO_USER= 'INVEJ'
+--  , KREIRAO_DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_zaglavlje@ratar ps
+--SET KREIRAO_USER = 'RATAR', OVERIO_USER= 'RATAR'
+--  , KREIRAO_DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI'), OVERIO_DATUM= TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+--
+set status_ID=0
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+"REM WORKSPACETAB11","UPDATE STAVKI",,40
+UPDATE planiranje_STAVKA@pekara ps
+SET KORISNIK= 'INVEJ'
+  , DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+----
+UPDATE planiranje_STAVKA@ratar ps
+SET KORISNIK= 'RATAR'
+  , DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_STAVKA@albus ps
+SET KORISNIK = 'INVEJ'
+  , DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_STAVKA@vital ps
+SET KORISNIK = 'VITAL'
+  , DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_STAVKA@medela ps
+SET KORISNIK = 'MEDELA'
+  , DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+
+UPDATE planiranje_STAVKA@sunce ps
+SET KORISNIK = 'SUNCE'
+  , DATUM = TO_DATE('14.9.2011 14:26','DD.MM.YYYY HH24:MI')
+
+Where ps.plan_tip_id = &c_tip_id and ps.PLAN_CIKLUS_ID = &c_ciklus_id and ps.PLAN_period_ID = &c_period_id
+  and ps.plan_trajanje_id = &c_trajanje_id and ps.broj_dok in (&c_broj_dok);
+"REM WORKSPACETAB12",Query14,,8
+sELECT * FROM planiranje_zaglavlje@sunce ps
+Where
+		      ps.plan_tip_id			= &c_tip_id
+		  and ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+		  and ps.PLAN_period_ID			= &c_period_id
+		  and ps.plan_trajanje_id		= &c_trajanje_id
+		  and ps.broj_dok				in (&c_broj_dok)
+--AND PROIZVOD='113301'
+"REM WORKSPACETAB13",Query17,,2
+select * from planski_rabat_po_grupama
+order by sifra
+"REM WORKSPACETAB14","za planski rabat",,9
+select * sifra, pl_rabat
+from planski_rabat_po_grupama
+Where Proizvod = &cProizvod AND
+      Datum = ( Select max( C1.Datum )
+                From planski_rabat_po_grupama C1
+                Where C1.Proizvod = &cProizvod AND
+                      C1.Datum <= TO_DATE( TO_CHAR(dDatum,'DD.MM.YYYY')||' '||'23:59:59','DD.MM.YYYY HH24.MI:SS') ) ;
+
+order by sifra
+"REM WORKSPACETAB15",Query18,,1
+select rowid, t.* from PLANSKI_RABAT t
+"REM WORKSPACETAB16",Query19,,10
+Select Cena --, Kol_Cena , Fak_Cena
+From Prodajni_Cenovnik
+Where Proizvod = &gotov_pr_sifra AND
+      Valuta = 'YUD' AND
+      Datum = ( Select max( C1.Datum )
+                From Prodajni_Cenovnik C1
+                Where C1.Proizvod = &gotov_pr_sifra AND
+                      C1.Valuta = 'YUD' AND
+                      C1.Datum <= &g_trajanje_datum_od
+                )
+"REM WORKSPACETAB17",Query20,,487
+			SELECT
+			       nvl(k.dobavljac,'987987') dobavljac
+			     , nvl((select naziv from poslovni_partner where sifra = k.dobavljac), 'NE POSTOJI VEZA PROIZVODA U KATALUGU') naziv_dobavljaca,
+			--       &g_trajanje_datum_od, g_trajanje_datum_do,
+			       PLAN_TIP_ID,PLAN_CIKLUS_ID,PLAN_PERIOD_ID,PLAN_TRAJANJE_ID,BROJ_DOK,VARIJANTA_ID
+			     , GOTOV_PR_SIFRA,GOTOV_PR_NAZIV,GOTOV_PR_JM
+			     , (
+				         Select Cena --, Kol_Cena , Fak_Cena
+				         From Prodajni_Cenovnik
+				         Where Proizvod = gotov_pr_sifra AND
+				               Valuta = 'YUD' AND
+				               Datum = ( Select max( C1.Datum )
+				                         From Prodajni_Cenovnik C1
+				                         Where C1.Proizvod = gotov_pr_sifra AND
+				                               C1.Valuta = 'YUD' AND
+				                               C1.Datum <= &g_trajanje_datum_od
+				                               --TO_DATE( TO_CHAR(dDatum,'DD.MM.YYYY')||' '||'23:59:59','DD.MM.YYYY HH24.MI:SS')
+				                        )
+			       ) prod_cena_RSD
+
+			     , GOTOV_PR_PLAN_ZELJENA_KOL * (
+				         Select Cena --, Kol_Cena , Fak_Cena
+				         From Prodajni_Cenovnik
+				         Where Proizvod = gotov_pr_sifra AND
+				               Valuta = 'YUD' AND
+				               Datum = ( Select max( C1.Datum )
+				                         From Prodajni_Cenovnik C1
+				                         Where C1.Proizvod = gotov_pr_sifra AND
+				                               C1.Valuta = 'YUD' AND
+				                               C1.Datum <= &g_trajanje_datum_od
+				                               --TO_DATE( TO_CHAR(dDatum,'DD.MM.YYYY')||' '||'23:59:59','DD.MM.YYYY HH24.MI:SS')
+				                        )
+			       ) plan_prihod_RSD
+
+			     , (
+				         Select Cena --, Kol_Cena , Fak_Cena
+				         From Prodajni_Cenovnik
+				         Where Proizvod = gotov_pr_sifra AND
+				               Valuta = 'EUR' AND
+				               Datum = ( Select max( C1.Datum )
+				                         From Prodajni_Cenovnik C1
+				                         Where C1.Proizvod = gotov_pr_sifra AND
+				                               C1.Valuta = 'EUR' AND
+				                               C1.Datum <= &g_trajanje_datum_od
+				                               --TO_DATE( TO_CHAR(dDatum,'DD.MM.YYYY')||' '||'23:59:59','DD.MM.YYYY HH24.MI:SS')
+				                        )
+			       ) prod_cena_EUR
+
+			     , GOTOV_PR_PLAN_ZELJENA_KOL * (
+				         Select Cena --, Kol_Cena , Fak_Cena
+				         From Prodajni_Cenovnik
+				         Where Proizvod = gotov_pr_sifra AND
+				               Valuta = 'EUR' AND
+				               Datum = ( Select max( C1.Datum )
+				                         From Prodajni_Cenovnik C1
+				                         Where C1.Proizvod = gotov_pr_sifra AND
+				                               C1.Valuta = 'EUR' AND
+				                               C1.Datum <= &g_trajanje_datum_od
+				                               --TO_DATE( TO_CHAR(dDatum,'DD.MM.YYYY')||' '||'23:59:59','DD.MM.YYYY HH24.MI:SS')
+				                        )
+			       ) plan_prihod_EUR
+
+
+			     , GOTOV_PR_TIP,GOTOV_PR_TIP_NAZIV,GOTOV_PR_GRUPA,GOTOV_PR_SASTAVNICA,GOTOV_PR_SASTAVNICA_SARZA,GOTOV_PR_PLAN_ZELJENA_KOL
+			     , GOTOV_PR_PLANIRANA_PRODAJA,GOTOV_PR_OPTIMALNA_ZALIHA,GRUPA_PROIZVODA
+			     , gotov_pr_pos_gr
+			     , gotov_pr_pos_gr_naziv
+			     , gotov_pr_prod_JM
+			     , gotov_pr_fak_treb
+
+			 	 ,d_dom.nabavljeno					d_nab
+				 ,d_dom.STANJE_ZAL					d_stanje_zal
+				 ,d_dom.STANJE_NA_DAN				d_stanje_na_dan
+				 ,d_dom.prod_kol					d_prod_kol
+				 ,d_dom.prod_VRED_RSD				d_prod_VRED_RSD
+			     ,d_dom.prod_VRED_RAB_RSD			d_prod_VRED_RAB_RSD
+			     ,d_dom.prod_VRED_SA_RAB_RSD		d_prod_VRED_SA_RAB_RSD
+
+				 ,d_ino.nabavljeno					i_nab
+				 ,d_ino.STANJE_ZAL					i_stanje_zal
+				 ,d_ino.STANJE_NA_DAN				i_stanje_na_dan
+			     ,d_ino.prodato						i_prod_kol
+			     ,d_ino.prodato_vred_rsd			i_prod_vred_rsd
+			     ,d_ino.prodato_vred_rab_rsd		i_prod_vred_rab_rsd
+			     ,d_ino.prodato_vred_sa_rab_rsd		i_prodato_vred_sa_rab_rsd
+			     ,d_ino.prodato_vred_rab_eur		i_prod_vred_rab_eur
+			     ,d_ino.prodato_vred_sa_rab_eur		i_prodato_vred_sa_rab_eur
+			     ,d_ino.prodato_vred_eur			i_prod_vred_eur
+			FROM
+			(
+			   select
+			          ps.plan_tip_id
+				    , ps.plan_ciklus_id
+			        , ps.plan_period_id
+				    , ps.plan_trajanje_id
+				    , ps.broj_dok
+				    , ps.varijanta_id
+
+			        , ps.proizvod          gotov_pr_sifra
+				    , p.naziv              gotov_pr_naziv
+				    , p.jed_mere           gotov_pr_jm
+			        , p.tip_proizvoda      gotov_pr_tip
+			        , tp.naziv             gotov_pr_tip_naziv
+			        ,
+			          case when Pmapiranje.VLASNIK_CONN_STR = 'RUBIN' then
+				             case when p.grupa_proizvoda = '323' then
+				                  'GP-INO'
+				             else
+				                  'GP-DOM'
+				             end
+			          else
+			              to_char(p.grupa_proizvoda)
+			          end     gotov_pr_grupa
+
+			        , Case when instr(PMapiranje.MOJE_FIRMA_BAZA,'INVEJ') > 0 Then
+				           (Select Org_deo From Dokument d, stavka_dok sd
+				            Where d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok and d.godina = sd.broj_dok
+				              and sd.proizvod = ps.proizvod
+				            Group By Org_Deo
+				           )
+			          End Invej_mag_pro
+
+				    , ps.broj_sastavnice   gotov_pr_sastavnica
+			        , sz.kolicina          gotov_pr_sastavnica_sarza
+
+				    , nvl(ps.kolicina,0)          gotov_pr_plan_zeljena_kol
+			        , nvl(ps.planirana_prodaja,0) gotov_pr_planirana_prodaja
+
+			        , nvl(ps.optimalna_zaliha,0)  gotov_pr_optimalna_zaliha
+
+			        , p.grupa_proizvoda
+			        , p.posebna_grupa      gotov_pr_pos_gr
+			        , pg.naziv             gotov_pr_pos_gr_naziv
+			        , p.prodajna_JM        gotov_pr_prod_JM
+			        , p.faktor_trebovne    gotov_pr_fak_treb
+
+			     from
+			          planiranje_stavka ps
+			        , proizvod p
+			        , sastavnica_zag sz
+			        , tip_proizvoda tp
+			        , posebna_grupa pg
+				where
+				      ps.PLAN_CIKLUS_ID = &c_ciklus_id
+				  and ps.PLAN_period_ID = &c_period_id
+			      and ps.plan_trajanje_id    = &c_trajanje_id
+			      and ps.plan_tip_id         = &c_tip_id
+			      and ps.broj_dok            = &c_broj_dok
+
+			      and ps.varijanta_id        = &c_varijanta_id
+
+			      and p.sifra				 = ps.proizvod
+			      and p.tip_proizvoda        = tp.sifra
+
+			      and pg.grupa=p.posebna_grupa
+			      and ps.broj_sastavnice     = sz.broj_dok (+)
+
+			) pl
+			,
+			(
+					SELECT sdp.proizvod
+			             , sum(case when dp.vrsta_Dok in( '3','4','5','30') AND
+			                             dp.datum_dok <=  &g_trajanje_datum_od AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+			                   else
+			                             null
+			                   end
+			                   ) nabavljeno
+
+			             , round(sum(case when dp.vrsta_dok not in ('2','9','10','80','90') then
+			                                   decode(dp.tip_dok,14,sdp.Kolicina,sdp.realizovano)*sdp.Faktor*sdp.K_ROBE
+			                         else
+			                                   null
+			                         end)
+
+			                    ,5) STANJE_ZAL
+
+			             , round(sum(case when dp.vrsta_dok not in ('2','9','10','80','90') and
+			                                   dP.datum_dok <=  &g_trajanje_datum_od
+			                                   then
+			                                   decode(dp.tip_dok,14,sdp.Kolicina,sdp.realizovano)*sdp.Faktor*sdp.K_ROBE
+			                         else
+			                                   null
+			                         end)
+
+			                    ,5) STANJE_NA_DAN
+			             , -1 * sum(case when dp.vrsta_Dok in( '11','12','13','31') AND dp.tip_dok not in (23,221,222,238,225)AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+			                   else
+			                             null
+			                   end
+			                   ) prod_kol
+
+			             , -1 * sum(case when dp.vrsta_Dok in( '11','12','13','31') AND dp.tip_dok not in (23,221,222,238,225)AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.K_Robe * SDP.CENA, 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prod_VRED_RSD
+			             , -1 * sum(case when dp.vrsta_Dok in( '11','12','13','31') AND dp.tip_dok not in (23,221,222,238,225)AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.K_Robe * SDP.CENA * sdp.RABAT / 100, 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prod_VRED_RAB_RSD
+			             , -1 * sum(case when dp.vrsta_Dok in( '11','12','13','31') AND dp.tip_dok not in (23,221,222,238,225)AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.K_Robe * SDP.CENA * (1-sdp.RABAT/100), 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prod_VRED_SA_RAB_RSD
+					FROM dokument dp, stavka_dok sdp
+
+					WHERE dp.broj_dok>0
+			          and dp.vrsta_Dok > '0'
+			          and dp.GODINA = &c_ciklus_id
+				      and dp.status > 0
+
+				      and dp.datum_dok between to_date('01.01.'|| &c_ciklus_id,'dd.mm.yyyy')
+			                               and to_date('31.12.'|| &c_ciklus_id,'dd.mm.yyyy')
+			 	      and dp.godina = sdp.godina and dp.vrsta_dok = sdp.vrsta_dok and dp.broj_dok = sdp.broj_dok
+			 	      and dp.org_Deo in (103,104,105,106,107,108)
+			          and sdp.proizvod in
+										(
+											 select proizvod
+												 from planiranje_stavka
+												where
+											           plan_tip_id         = &c_tip_id
+											      and  plan_ciklus_id      = &c_ciklus_id
+											      and  plan_period_id      = &c_period_id
+											      and  plan_trajanje_id    = &c_trajanje_id
+											      and  broj_dok   = &c_broj_dok
+												  and  varijanta_id     = &c_varijanta_id
+
+
+										     group by proizvod
+										)
+
+
+			        group by sdp.proizvod
+			) d_dom
+			,(
+					SELECT sdp.proizvod
+			             , sum(case when dp.vrsta_Dok in( '73') AND
+			                             dp.datum_dok <=  &g_trajanje_datum_od AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+			                   else
+			                             null
+			                   end
+			                   ) nabavljeno
+
+			             , round(sum(case when dp.vrsta_dok not in ('2','9','10','80','90') then
+			                                   decode(dp.tip_dok,14,sdp.Kolicina,sdp.realizovano)*sdp.Faktor*sdp.K_ROBE
+			                         else
+			                                   null
+			                         end)
+
+			                    ,5) STANJE_ZAL
+
+			             , round(sum(case when dp.vrsta_dok not in ('2','9','10','80','90') and
+			                                   dP.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do
+			                                   then
+			                                   decode(dp.tip_dok,14,sdp.Kolicina,sdp.realizovano)*sdp.Faktor*sdp.K_ROBE
+			                         else
+			                                   null
+			                         end)
+
+			                    ,5) STANJE_NA_DAN
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe, 5 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe * cena1, 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato_vred_rsd
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe * cena1* nvl(sdp.rabat,0)/100, 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato_vred_rab_rsd
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.Faktor * sdp.K_Robe * cena1* (1-nvl(sdp.rabat,0)/100), 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato_vred_sa_rab_rsd
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.K_Robe * cena, 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato_vred_eur
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.K_Robe * cena* nvl(sdp.rabat,0)/100, 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato_vred_rab_eur
+
+			             , -1 * sum(case when dp.vrsta_Dok = '74' AND
+			                             dp.datum_dok BETWEEN &g_trajanje_datum_od AND &g_trajanje_datum_do AND
+			                             dp.ppartner not in (select vrednost from PLANIRANJE_MAPIRANJE  where VRSTA ='SIFRA_NASE_FIRME_U_PARTNERIMA' )
+			                             then
+
+			                             Round( Decode( dp.Vrsta_Dok ||','||dp.Tip_Dok,
+			                                            '3,14', sdp.Kolicina,
+			                                            '4,14', sdp.Kolicina,
+			                                            sdp.Realizovano ) * sdp.K_Robe * cena* (1-nvl(sdp.rabat,0)/100), 2 )
+			                   else
+			                             null
+			                   end
+			                   ) prodato_vred_sa_rab_eur
+
+					FROM dokument dp, stavka_dok sdp
+
+					WHERE dp.broj_dok>0
+			          and dp.vrsta_Dok > '0'
+			          and dp.GODINA = &c_ciklus_id
+				      and dp.status > 0
+
+				      and dp.datum_dok between to_date('01.01.'|| &c_ciklus_id,'dd.mm.yyyy')
+			                               and to_date('31.12.'|| &c_ciklus_id,'dd.mm.yyyy')
+			 	      and dp.godina = sdp.godina and dp.vrsta_dok = sdp.vrsta_dok and dp.broj_dok = sdp.broj_dok
+			 	      and dp.org_Deo in (123,124,125,126,127,128)
+			          and sdp.proizvod in
+										(
+											 select proizvod
+												 from planiranje_stavka
+												where
+											           plan_tip_id         = &c_tip_id
+											      and  plan_ciklus_id      = &c_ciklus_id
+											      and  plan_period_id      = &c_period_id
+											      and  plan_trajanje_id    = &c_trajanje_id
+											      and  broj_dok   = &c_broj_dok
+												  and  varijanta_id     = &c_varijanta_id
+
+
+										     group by proizvod
+										)
+
+
+			        group by sdp.proizvod
+			) d_ino
+			,
+			(
+				Select DOBAVLJAC,PROIZVOD,NABAVNA_SIFRA
+				From
+				(
+					select case when proizvod in ('3764','3807','3815','7330') then
+					                 '965'
+					       else
+					                 DOBAVLJAC
+					       end       DOBAVLJAC
+					     , PROIZVOD,NABAVNA_SIFRA,NABAVNI_NAZIV,CENA,VALUTA,KOL_CENA,JM_CENA,DATUM
+					     , RABAT,KOMENTAR,VALUTA_PLACANJA
+					from katalog k--, poslovni_partner pp
+					where dobavljac in ('90','206','342','172','594','127','711','965','138','1138','1226')
+					  and proizvod in (
+					                    Select proizvod
+					 				     from
+									          planiranje_stavka ps
+										where
+										      ps.PLAN_CIKLUS_ID			= &c_ciklus_id
+									      and ps.plan_tip_id			= &c_tip_id
+										  and ps.PLAN_period_ID			= &c_period_id
+									      and ps.plan_trajanje_id		= &c_trajanje_id
+
+									      and ps.broj_dok				= &c_broj_dok
+									      and ps.varijanta_id			= &c_varijanta_id
+
+					                )
+					--  and pp.sifra = k.dobavljac
+				)
+			Group by DOBAVLJAC,PROIZVOD,NABAVNA_SIFRA
+			order by to_number(proizvod)
+			) k
+			where pl.GOTOV_PR_SIFRA = d_dom.proizvod (+)
+			  and pl.GOTOV_PR_SIFRA = d_ino.proizvod (+)
+			  and pl.GOTOV_PR_SIFRA = k.proizvod (+)
+			--  and pl.GOTOV_PR_SIFRA = 1612
+
+			order by
+					  to_number(nvl(k.dobavljac,'987987'))
+			       , case when Pmapiranje.VLASNIK_CONN_STR = 'RUBIN' then
+			                   gotov_pr_grupa
+			         else
+			                   GOTOV_PR_TIP
+			         end
+			       , gotov_pr_pos_gr_naziv
+			       , gotov_pr_prod_JM desc
+			       , gotov_pr_fak_treb
+			       , GOTOV_PR_NAZIV
+			       ;

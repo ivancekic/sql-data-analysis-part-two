@@ -1,0 +1,71 @@
+"REM WORKSPACETAB0","Datum trajanja do",,6
+select (trunc(sysdate) - trunc(datum_do)) datum
+--  into g_razlika_datuma
+  from planiranje_trajanje
+ where plan_ciklus_id = 2010	-- p_ciklus_id		-- godina
+   and plan_period_id = 3		-- p_period_id		-- godina, kvartal, mesec, nedeljni, dnevni, tromesecni
+   and trajanje_id    = 11		-- p_trajanje_id	-- 
+"REM WORKSPACETAB1","Nalazi stanje zaliha",,63
+select sum(stanje) 
+ from (
+ select 
+   distinct podm.magacin_id
+          , z.stanje
+   from zalihe z
+      , planiranje_org_deo_magacin podm
+  where podm.magacin_id  = z.org_deo
+    and z.proizvod       = p_proizvod
+ and (
+          (--ako nije postavljen uslov onda sistematizuj sve sifre org_delova koji ulaze u period i za njih uzmi...
+           p_org_deo_id is null
+           and podm.org_deo_id in (
+                                  select /*+ INDEX(planiranje_stavka planir_s_pk) */
+                                distinct (org_deo_id) 
+                                    from planiranje_view
+                                   where  
+                                   
+                                    --**********************************************************************************************************************************--   
+                                    --**********************************************************************************************************************************--   
+                                    --tip, ciklus, period, trajanje-----------------------------------------------------------------------------------------------------                      
+				                      plan_tip_id         = 3--g_tip_id			--proizvodnja
+				                  and plan_ciklus_id      = 2010--g_ciklus_id	--godina
+							      and (--menjamo set pokupljenih podataka, tako da umesto planova u izabranom periodu uzima planove u periodu ispod ciji datum_od upada u period
+							            (g_plan_zbir_podperioda is null     and plan_period_id  = 3 --g_period_id -- mesec
+							            
+							            )   
+							            or 
+							            (g_plan_zbir_podperioda is not null and plan_period_id  = g_plan_zbir_podperioda)
+							          )
+							      and (--isto menjamo set pokupljenih podataka, tako da umesto planova u izabranom periodu uzima planove u periodu ispod ciji datum_od upada u period
+							            (g_plan_zbir_podperioda is null and plan_trajanje_id = g_trajanje_id) 
+							            or 
+							            (g_plan_zbir_podperioda is not null and 
+							              (select pt.datum_od from planiranje_trajanje pt where pt.plan_ciklus_id =g_ciklus_id and pt.plan_period_id =g_plan_zbir_podperioda and pt.trajanje_id =plan_trajanje_id)
+							               between 
+							              (select datum_od    from planiranje_trajanje    where plan_ciklus_id    =g_ciklus_id and plan_period_id    =g_period_id            and trajanje_id    =g_trajanje_id) 
+							               and 
+							              (select datum_do    from planiranje_trajanje    where plan_ciklus_id    =g_ciklus_id and plan_period_id    =g_period_id            and trajanje_id    =g_trajanje_id)                
+							            )
+							          ) 
+				                 --konkretan plan, i org.deo-----------------------------------------------------------------------------------------------------                                                                                                       
+				                 and (g_broj_dok   is null  or (g_broj_dok   is not null and broj_dok    = g_broj_dok))                  
+				                 and (g_broj_dok1  is null  or (g_broj_dok1  is not null and broj_dok1   = g_broj_dok1))
+				                 and (g_org_deo_id is null  or (g_org_deo_id is not null and org_deo_id  = g_org_deo_id)) 
+				                 --statusi-----------------------------------------------------------------------------------------------------  
+							     and (g_samo_overeni     = 0      or (g_samo_overeni     = 1          and status_plan      = 1))   
+							     and (g_varijanta_id     is null  or (g_varijanta_id     is not null  and varijanta_id     = g_varijanta_id))    --da uzme konkretnu varijantu ako je zadata            
+							     and (g_status_varijanta is null  or (g_status_varijanta is not null  and status_varijanta = g_status_varijanta))--da uzme samo cekirane za sumarni izvestaj ok										     
+                                    --**********************************************************************************************************************************--   
+                                    --**********************************************************************************************************************************--   							                        
+                                          
+                                          and  materijal_sifra=p_proizvod
+                                   )   
+          )
+      or 
+          (--ako je postavljen onda uzmi samo njega  
+           p_org_deo_id is not null 
+           and podm.org_deo_id = p_org_deo_id
+          ) 
+          
+      )      
+    and z.org_deo not in (select magacin from partner_magacin_flag))

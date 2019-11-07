@@ -1,0 +1,145 @@
+"REM WORKSPACETAB0",Query1,,4
+select * from ZAL_GOD_MAG_DAT
+--where na_dat='17.03.2011 00:00:00'
+where stanje < 0
+order by na_dat
+"REM WORKSPACETAB1",Query8,,3
+--select * from ZAL_GOD_MAG_DAT
+
+--delete ZAL_GOD_MAG_DAT
+"REM WORKSPACETAB2","stanja minusna",,9
+select * from ZAL_GOD_MAG_DAT
+where na_dat='01.01.2011 00:00:00'
+--  and pro = '002'
+--where pro = '002'
+--where stanje < 0
+--where god = 2011
+--and stanje < 0
+--and mag <> 140
+order by mag--na_dat
+"REM WORKSPACETAB3",Query5,,16
+select d.org_deo, sd.proizvod, sum(sd.k_robe*sd.faktor*sd.k_robe)
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2010' = d.godina
+--  AND TIP_DOK = 11
+  AND D.ORG_DEO = 2
+  and proizvod = '002'
+  and k_robe <> 0
+  and d.status > 0
+  and d.datum_dok = to_date('31.12.2010','dd.mm.yyyy')
+Group by d.org_deo, sd.proizvod
+"REM WORKSPACETAB4","robna kartica",,23
+select d.org_deo, d.poslovnica, d.godina, d.vrsta_DOk, d.broj_dok, d.datum_dok, d.datum_unosa
+     , sd.proizvod
+     , sd.kolicina
+     , sd.faktor
+     , sd.k_robe
+--     , sum(sd.kolicina*sd.faktor*sd.k_robe)
+, sd.kolicina*sd.faktor*sd.k_robe kol
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+--  AND TIP_DOK = 11
+  AND D.ORG_DEO = 2
+  and proizvod = '002'
+  and k_robe <> 0
+  and d.status > 0
+  and d.datum_dok < to_date('15.01.2011','dd.mm.yyyy')
+--Group by d.org_deo, sd.proizvod
+order by datum_dok, datum_unosa
+"REM WORKSPACETAB5",Query7,,15
+select d.org_deo
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+  and d.org_deo = 2
+  and proizvod = '002'
+  and k_robe <> 0
+  and d.status > 0
+
+Group by d.org_deo, sd.proizvod
+"REM WORKSPACETAB6","sume po dat",,17
+select d.org_deo, d.datum_dok
+     , sum(sd.kolicina*sd.faktor*sd.k_robe) kol
+from dokument d,stavka_dok sd, PROIZVOD P , GRUPA_PR  GPR
+Where
+  -- veza tabela
+      d.godina = sd.godina and d.vrsta_dok = sd.vrsta_dok and d.broj_dok = sd.broj_dok
+  AND SD.PROIZVOD = P.SIFRA AND P.GRUPA_PROIZVODA=  GPR.ID
+  -----------------------------
+  -- ostali uslovi
+  and '2011' = d.godina
+  and d.org_deo = 2
+  and proizvod = '002'
+  and k_robe <> 0
+  and d.status > 0
+
+Group by d.org_deo, d.datum_dok, sd.proizvod
+Order by datum_Dok
+"REM WORKSPACETAB7",Query2,,2
+select '02inv' firma, god, max(na_dat) max_na_dat from ZAL_GOD_MAG_DAT
+group by god
+"REM WORKSPACETAB8",procedura,,47
+	select D.GODINA,D.ORG_DEO
+         ,
+	           (select max(datum_dok) from dokument d1
+	            where d1.godina = to_char(&dDatum_par,'yyyy') and d1.vrsta_dok= '21' and d1.status > 0
+  	              and d1.org_deo = d.org_Deo AND d1.godina = to_char(&dDatum_par,'yyyy')
+  	           )
+  	               dat_ps
+
+	     , nvl(
+	           (select max(datum_dok) from dokument d1
+	            where d1.godina = to_char(&dDatum_par,'yyyy') and d1.vrsta_dok= '21' and d1.status > 0
+	              and d1.org_deo = d.org_Deo AND d1.godina = to_char(&dDatum_par,'yyyy'))
+	          ,to_date('01.01.'||to_char(&dDatum_par,'yyyy'),'dd.mm.yyyy')
+	          ) dat_poc
+	     , (select count(*) from dokument d1 where d1.vrsta_dok not in('2','9','10') and d1.status > 0
+	           and d1.org_deo = d.org_Deo and d1.godina = to_char(&dDatum_par,'mm')
+	        ) uk_dok
+	     , to_char(&dDatum_par,'mm') mes
+	     , SD.PROIZVOD
+	     , &dDatum_par na_dan
+	     , round(sum(
+	                 ( case when D.Vrsta_Dok ||','||Tip_Dok in ('3,14','4,14') then
+	                      sd.kolicina
+	                   else
+	                      sd.realizovano
+	                   end
+	                 )
+	                 * sd.k_robe * sd.faktor
+	                )
+	             ,5
+	            )  kol
+	FROM DOKUMENT D, STAVKA_DOK SD
+	WHERE D.GODINA = to_number(to_char(&dDatum_par,'yyyy'))
+	  And D.STATUS > 0
+	  AND D.ORG_DEO BETWEEN &nOrgDeo_par_od AND &nOrgDeo_par_do
+	  AND D.DATUM_DOK between
+	                          nvl((select max(datum_dok) from dokument d1
+	                               where d1.vrsta_dok= '21' and d1.status > 0 and d1.org_deo = d.org_Deo AND d1.godina = to_char(&dDatum_par,'yyyy'))
+ 	                               ,to_date('01.01.'||to_char(&dDatum_par,'yyyy'),'dd.mm.yyyy')
+ 	                             )
+ 	                      and to_date(to_char(&dDatum_par,'dd')||'.'||to_char(&dDatum_par,'mm.yyyy'),'dd.mm.yyyy')
+	  AND D.BROJ_DOK=SD.BROJ_DOK
+	  AND D.VRSTA_DOK=SD.VRSTA_DOK
+	  AND D.GODINA=SD.GODINA
+	  AND K_ROBE <> 0
+	GROUP BY D.GODINA, D.ORG_DEO,SD.PROIZVOD
+	ORDER BY D.ORG_DEO,TO_NUMBER(SD.PROIZVOD);
