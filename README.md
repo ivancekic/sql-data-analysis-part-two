@@ -1,3 +1,3 @@
-# Django application
+# sql-data-analysis-part-two
 
-Django application
+sql-data-analysis-part-two
